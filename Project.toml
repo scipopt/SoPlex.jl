@@ -1,0 +1,12 @@
+name = "SoPlex"
+uuid = "0f1713cb-956e-483c-a7b8-fc2c0b487a2b"
+version = "0.1.0"
+
+[compat]
+julia = "1"
+
+[extras]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["Test"]
