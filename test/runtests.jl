@@ -1,6 +1,6 @@
-using SoPlexPkg
+using SoPlex
 using Test
 
-@testset "SoPlexPkg.jl" begin
+@testset "SoPlex" begin
     # Write your tests here.
 end
