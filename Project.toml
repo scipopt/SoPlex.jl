@@ -2,6 +2,9 @@ name = "SoPlex"
 uuid = "0f1713cb-956e-483c-a7b8-fc2c0b487a2b"
 version = "0.1.0"
 
+[deps]
+Libdl = "8f399da3-3557-5675-b5ff-fb832c97cbdb"
+
 [compat]
 julia = "1"
 
