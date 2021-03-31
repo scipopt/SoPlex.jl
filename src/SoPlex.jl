@@ -7,4 +7,8 @@ else
     error("SoPlex not properly installed. Please run import Pkg; Pkg.build(\"SoPlex\")")
 end
 
+include("commons.jl")
+include("ctypes.jl")
+include("soplex_interface.jl")
+
 end # module
