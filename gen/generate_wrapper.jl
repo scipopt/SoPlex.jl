@@ -25,9 +25,9 @@ soplex_header = joinpath(SOPLEX_SRC, "src", "soplex_interface.h")
 context = Clang.init(
     headers=[soplex_header],
     common_file="commons.jl",
-    output_dir="../src/",
-    clang_includes=vcat(Clang.HEADER_BASE, Clang.LLVM_INCLUDE),
-    clang_args = ["-I", Clang.HEADER_BASE],
+    output_dir=joinpath(@__DIR__, "../src/"),
+    clang_includes=vcat(HEADER_BASE, Clang.LLVM_INCLUDE),
+    clang_args = ["-I", HEADER_BASE],
     clang_diagnostics=true,
     header_wrapped=(header, cursorname) -> header == cursorname,
     header_library=header_name -> "libsoplex"

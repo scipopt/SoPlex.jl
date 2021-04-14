@@ -1,6 +1,7 @@
 # Julia wrapper for header: soplex_interface.h
 # Automatically generated using Clang.jl
 
+
 function SoPlex_create()
     ccall((:SoPlex_create, libsoplex), Ptr{Cvoid}, ())
 end
