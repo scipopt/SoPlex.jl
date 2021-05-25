@@ -10,6 +10,10 @@ function SoPlex_free(soplex)
     ccall((:SoPlex_free, libsoplex), Cvoid, (Ptr{Cvoid},), soplex)
 end
 
+function SoPlex_clearLPReal(soplex)
+    ccall((:SoPlex_clearLPReal, libsoplex), Cvoid, (Ptr{Cvoid},), soplex)
+end
+
 function SoPlex_numRows(soplex)
     ccall((:SoPlex_numRows, libsoplex), Cint, (Ptr{Cvoid},), soplex)
 end
@@ -96,4 +100,20 @@ end
 
 function SoPlex_changeBoundsReal(soplex, lb, ub, dim)
     ccall((:SoPlex_changeBoundsReal, libsoplex), Cvoid, (Ptr{Cvoid}, Ptr{Cdouble}, Ptr{Cdouble}, Cint), soplex, lb, ub, dim)
+end
+
+function SoPlex_changeVarBoundsReal(soplex, colidx, lb, ub)
+    ccall((:SoPlex_changeVarBoundsReal, libsoplex), Cvoid, (Ptr{Cvoid}, Cint, Cdouble, Cdouble), soplex, colidx, lb, ub)
+end
+
+function SoPlex_changeVarBoundsRational(soplex, colidx, lbnum, lbdenom, ubnum, ubdenom)
+    ccall((:SoPlex_changeVarBoundsRational, libsoplex), Cvoid, (Ptr{Cvoid}, Cint, Cint, Cint, Cint, Cint), soplex, colidx, lbnum, lbdenom, ubnum, ubdenom)
+end
+
+function SoPlex_changeVarUpperReal(soplex, colidx, ub)
+    ccall((:SoPlex_changeVarUpperReal, libsoplex), Cvoid, (Ptr{Cvoid}, Cint, Cdouble), soplex, colidx, ub)
+end
+
+function SoPlex_getUpperReal(soplex, ub, dim)
+    ccall((:SoPlex_getUpperReal, libsoplex), Cvoid, (Ptr{Cvoid}, Ptr{Cdouble}, Cint), soplex, ub, dim)
 end
