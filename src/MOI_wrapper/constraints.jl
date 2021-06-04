@@ -7,7 +7,7 @@ function MOI.supports_constraint(
     ::Optimizer{T},
     ::Type{MOI.SingleVariable},
     ::Type{_SCALAR_SETS{T}},
-) where {T}
+) where { T <: FloatorRational}
     return true
 end
 
@@ -16,14 +16,14 @@ function MOI.supports_constraint(
     ::Optimizer,
     ::Type{MOI.ScalarAffineFunction{T}},
     ::Type{<:_SCALAR_SETS{T}},
-) where{T}
+) where{T <: FloatorRational}
     return true
 end
 
 function MOI.is_valid(
     model::Optimizer,
     c::MOI.ConstraintIndex{MOI.ScalarAffineFunction{T},S},
-) where {T, S<:_SCALAR_SETS}
+) where { T <: FloatorRational, S<:_SCALAR_SETS}
     key = _ConstraintKey(c.value)
     info = get(model.affine_constraint_info, key, nothing)
     if info === nothing
@@ -35,7 +35,7 @@ end
 function MOI.is_valid(
     model::Optimizer,
     c::MOI.ConstraintIndex{MOI.SingleVariable, MOI.LessThan{T}},
-) where{T}
+) where{T <: FloatorRational}
     if haskey(model.variable_info, MOI.VariableIndex(c.value))
         info = _info(model, c)
         return info.bound == _BOUND_LESS_THAN ||
@@ -47,7 +47,7 @@ end
 function MOI.is_valid(
     model::Optimizer,
     c::MOI.ConstraintIndex{MOI.SingleVariable, MOI.GreaterThan{T}},
-) where{T}
+) where{T <: FloatorRational}
     if haskey(model.variable_info, MOI.VariableIndex(c.value))
         info = _info(model, c)
         return info.bound == _BOUND_GREATER_THAN ||
@@ -59,7 +59,7 @@ end
 function MOI.is_valid(
     model::Optimizer,
     c::MOI.ConstraintIndex{MOI.SingleVariable, MOI.Interval{T}},
-) where{T}
+) where{T <: FloatorRational}
     return haskey(model.variable_info, MOI.VariableIndex(c.value)) &&
            _info(model, c).bound == _BOUND_INTERVAL
 end
@@ -67,7 +67,7 @@ end
 function MOI.is_valid(
     model::Optimizer,
     c::MOI.ConstraintIndex{MOI.SingleVariable, MOI.EqualTo{T}},
-) where{T}
+) where{T <: FloatorRational}
     return haskey(model.variable_info, MOI.VariableIndex(c.value)) &&
            _info(model, c).bound == _BOUND_EQUAL_TO
 end
@@ -76,22 +76,22 @@ end
 #      Helper functions
 # =============================================
 
-function _bound_enums(::Type{MOI.LessThan{T}}) where{T}
+function _bound_enums(::Type{MOI.LessThan{T}}) where{T <: FloatorRational}
     return (_BOUND_LESS_THAN, _BOUND_LESS_AND_GREATER_THAN)
 end
 
-function _bound_enums(::Type{MOI.GreaterThan{T}}) where{T}
+function _bound_enums(::Type{MOI.GreaterThan{T}}) where{T <: FloatorRational}
     return (_BOUND_GREATER_THAN, _BOUND_LESS_AND_GREATER_THAN)
 end
 
-_bound_enums(::Type{MOI.Interval{T}}) where{T} = (_BOUND_INTERVAL,)
+_bound_enums(::Type{MOI.Interval{T}}) where{T <: FloatorRational} = (_BOUND_INTERVAL,)
 
-_bound_enums(::Type{MOI.EqualTo{T}}) where{T} = (_BOUND_EQUAL_TO,)
+_bound_enums(::Type{MOI.EqualTo{T}}) where{T <: FloatorRational} = (_BOUND_EQUAL_TO,)
 
 function MOI.get(
     model::Optimizer,
     ::MOI.ListOfConstraintIndices{MOI.SingleVariable,S},
-) where {T, S<:_SCALAR_SETS{T}}
+) where { T <: FloatorRational, S<:_SCALAR_SETS{T}}
     indices = MOI.ConstraintIndex{MOI.SingleVariable,S}[
         MOI.ConstraintIndex{MOI.SingleVariable,S}(key.value) for
         (key, info) in model.variable_info if info.bound in _bound_enums(S)
@@ -127,7 +127,7 @@ end
 function MOI.get(
     model::Optimizer,
     ::MOI.ListOfConstraintIndices{MOI.ScalarAffineFunction{T},S},
-) where {T, S<:_SCALAR_SETS}
+) where { T <: FloatorRational, S<:_SCALAR_SETS}
     indices = MOI.ConstraintIndex{MOI.ScalarAffineFunction{T},S}[
         MOI.ConstraintIndex{MOI.ScalarAffineFunction{T},S}(key.value)
         for (key, info) in model.affine_constraint_info if _set(info) isa S
@@ -138,7 +138,7 @@ end
 function _info(
     model::Optimizer,
     c::MOI.ConstraintIndex{MOI.ScalarAffineFunction{T},<:_SCALAR_SETS},
-) where{T}
+) where{T <: FloatorRational}
     key = _ConstraintKey(c.value)
     if haskey(model.affine_constraint_info, key)
         return model.affine_constraint_info[key]
@@ -149,33 +149,44 @@ end
 function row(
     model::Optimizer,
     c::MOI.ConstraintIndex{MOI.ScalarAffineFunction{T},<:_SCALAR_SETS},
-) where{T}
+) where{T <: FloatorRational}
     return _info(model, c).row
 end
 
 function _coefficients(
     model::Optimizer,
     f::MOI.ScalarAffineFunction{T},
-) where{T}
+) where{T <: Float64}
+    size = SoPlex_numCols(model)
+
+    coefficients = zeros(Cdouble, size)
+
+    for term in f.terms
+        idx = column(model, term.variable_index)
+        coefficients[idx + 1] = term.coefficient
+    end
+    return coefficients
+end 
+
+function _coefficients(
+    model::Optimizer,
+    f::MOI.ScalarAffineFunction{T},
+) where{T <: Rational{Int64}}
     size = SoPlex_numCols(model)
     
-    if model.is_rational
-        coefficients = zeros(Rational{Int64}, size)
-    else
-        coefficients = zeros(Cdouble, size)
-    end 
+    coefficients = zeros(Rational{Int64}, size)
     
     for term in f.terms
         idx = column(model, term.variable_index)
         coefficients[idx + 1] = term.coefficient
     end 
     return coefficients
-end 
+end
 
 function _throw_if_existing_lower(
     info::_VariableInfo{T},
     ::S,
-) where {T,S<:MOI.AbstractSet}
+) where { T <: FloatorRational,S<:MOI.AbstractSet}
     if info.bound == _BOUND_LESS_AND_GREATER_THAN
         throw(MOI.LowerBoundAlreadySet{MOI.GreaterThan{T},S}(info.index))
     elseif info.bound == _BOUND_GREATER_THAN
@@ -191,7 +202,7 @@ end
 function _throw_if_existing_upper(
     info::_VariableInfo{T},
     ::S,
-) where {T,S<:MOI.AbstractSet}
+) where { T <: FloatorRational,S<:MOI.AbstractSet}
     if info.bound == _BOUND_LESS_AND_GREATER_THAN
         throw(MOI.UpperBoundAlreadySet{MOI.LessThan{T},S}(info.index))
     elseif info.bound == _BOUND_LESS_THAN
@@ -212,7 +223,7 @@ function MOI.add_constraint(
     model::Optimizer,
     f::MOI.SingleVariable,
     s::_SCALAR_SETS{T},
-) where{T}
+) where{T <: FloatorRational}
     info = _info(model, f.variable)
     _update_info(info, s)
     index = MOI.ConstraintIndex{MOI.SingleVariable,typeof(s)}(f.variable.value)
@@ -221,11 +232,11 @@ function MOI.add_constraint(
 end
 
 function MOI.set(
-    model::Optimizer,
+    model::Optimizer{T},
     ::MOI.ConstraintSet,
     c::MOI.ConstraintIndex{MOI.SingleVariable,S},
     s::S,
-) where {T, S<:_SCALAR_SETS{T}}
+) where { T <: Float64, S<:_SCALAR_SETS{T}}
     MOI.throw_if_not_valid(model, c)
     lower, upper = _bounds(s)
     info = _info(model, c)
@@ -233,43 +244,73 @@ function MOI.set(
     lb = zeros(Cdouble, SoPlex_numCols(model))
     ub = zeros(Cdouble, SoPlex_numCols(model))
 
-    if model.is_rational
-        if S == MOI.LessThan{T}
-            SoPlex_changeVarBoundsRational(model, info.column, info.lower, upper)
-            info.upper = upper
-         elseif S == MOI.GreaterThan{T}
-            SoPlex_changeVarBoundsRational(model, info.column, lower, info.upper)
-            info.lower = lower
-         else
-            SoPlex_changeVarBoundsRational(model, info.column, lower, upper)
-            info.lower = lower
-            info.upper = upper
-         end
+    if S == MOI.LessThan{T}
+         SoPlex_changeVarBoundsReal(model, info.column, info.lower, upper)
+         info.upper = upper
+    elseif S == MOI.GreaterThan{T}
+         SoPlex_changeVarBoundsReal(model, info.column, lower, info.upper)
+         info.lower = lower
     else
-         if S == MOI.LessThan{T}
-            #println("varidx ", info.column, " <= ", upper)
-            SoPlex_changeVarBoundsReal(model, info.column, info.lower, upper)
-            info.upper = upper
-         elseif S == MOI.GreaterThan{T}
-            #println("varidx ", info.column, " >= ", lower)
-            #SoPlex_changeVarUpper(model, info.column, lower)
-            SoPlex_changeVarBoundsReal(model, info.column, lower, info.upper)
-            info.lower = lower
-         else
-            #println(lower, " <= ", "varidx ", info.column, " <=  ", upper)
-            SoPlex_changeVarBoundsReal(model, info.column, lower, upper)
-            info.lower = lower
-            info.upper = upper
-         end
+         SoPlex_changeVarBoundsReal(model, info.column, lower, upper)
+         info.lower = lower
+         info.upper = upper
+    end
+    return
+end
+
+function MOI.set(
+    model::Optimizer,
+    ::MOI.ConstraintSet,
+    c::MOI.ConstraintIndex{MOI.SingleVariable,S},
+    s::S,
+) where { T <: Rational{Int64}, S<:_SCALAR_SETS{T}}
+    MOI.throw_if_not_valid(model, c)
+    lower, upper = _bounds(s)
+    info = _info(model, c)
+
+    lb = zeros(Cdouble, SoPlex_numCols(model))
+    ub = zeros(Cdouble, SoPlex_numCols(model))
+
+    if S == MOI.LessThan{T}
+         SoPlex_changeVarBoundsRational(model, info.column, info.lower, upper)
+         info.upper = upper
+    elseif S == MOI.GreaterThan{T}
+         SoPlex_changeVarBoundsRational(model, info.column, lower, info.upper)
+         info.lower = lower
+    else
+         SoPlex_changeVarBoundsRational(model, info.column, lower, upper)
+         info.lower = lower
+         info.upper = upper
     end
     return
 end
 
 function MOI.add_constraint(
-    model::Optimizer,
+    model::Optimizer{T},
     f::MOI.ScalarAffineFunction{T},
     s::_SCALAR_SETS,
-) where{T}
+) where{T <: Float64}
+    if !iszero(f.constant)
+        throw(MOI.ScalarFunctionConstantNotZero{T,typeof(f),typeof(s)}(f.constant,),)
+    end
+
+    key = CleverDicts.add_item(model.affine_constraint_info, _ConstraintInfo(s))
+    model.affine_constraint_info[key].row = Cint(length(model.affine_constraint_info) - 1)
+    coefficients = _coefficients(model, f)
+    lower, upper = _bounds(s)
+    f_canon = MOI.Utilities.canonical(f)
+    nnz = length(f_canon.terms)
+
+    SoPlex_addRowReal(model, coefficients, length(f.terms), nnz, lower, upper)
+
+    return MOI.ConstraintIndex{typeof(f),typeof(s)}(key.value)
+end
+
+function MOI.add_constraint(
+    model::Optimizer{T},
+    f::MOI.ScalarAffineFunction{T},
+    s::_SCALAR_SETS,
+) where{T <: Rational{Int64}}
     if !iszero(f.constant)
         throw(MOI.ScalarFunctionConstantNotZero{T,typeof(f),typeof(s)}(f.constant,),)
     end
@@ -281,18 +322,15 @@ function MOI.add_constraint(
     f_canon = MOI.Utilities.canonical(f)
     nnz = length(f_canon.terms)
     
-    # add constraint as double or rational, depending on is_rational
-    if model.is_rational == true
-         
-         # SoPlex does not allow 1//0 = Inf
-         if denominator(upper) == 0
-             upper = inf // 1
-         end
-         if denominator(lower) == 0
-             lower = -inf // 1
-         end
+    # SoPlex does not allow 1//0 = Inf
+    if denominator(upper) == 0
+         upper = inf // 1
+    end
+    if denominator(lower) == 0
+         lower = -inf // 1
+    end
     
-         SoPlex_addRowRational(
+    SoPlex_addRowRational(
          model,
          [numerator(coef) for coef in coefficients],
          [denominator(coef) for coef in coefficients],
@@ -303,17 +341,7 @@ function MOI.add_constraint(
          numerator(upper),
          denominator(upper)
          )
-    else
-         SoPlex_addRowReal(
-         model,
-         coefficients,
-         length(f.terms),
-         nnz,
-         lower,
-         upper
-         )
-    end
+
     return MOI.ConstraintIndex{typeof(f),typeof(s)}(key.value)
 end
-
 

@@ -2,6 +2,7 @@ import MathOptInterface
 const MOI = MathOptInterface
 const CleverDicts = MOI.Utilities.CleverDicts
 global inf = 2^31 - 1
+FloatOrRational = Union{Float64, Rational{Int32}}
 
 # ==============================================================================
 #           HELPER FUNCTIONS
@@ -15,10 +16,10 @@ global inf = 2^31 - 1
     _ROW_TYPE_EQUAL_TO,
 )
 
-_row_type(::MOI.GreaterThan{T}) where{T} = _ROW_TYPE_GREATERTHAN
-_row_type(::MOI.LessThan{T}) where{T} = _ROW_TYPE_LESSTHAN
-_row_type(::MOI.EqualTo{T}) where{T} = _ROW_TYPE_EQUAL_TO
-_row_type(::MOI.Interval{T}) where{T} = _ROW_TYPE_INTERVAL
+_row_type(::MOI.GreaterThan{FloatOrRational})  = _ROW_TYPE_GREATERTHAN
+_row_type(::MOI.LessThan{FloatOrRational}) = _ROW_TYPE_LESSTHAN
+_row_type(::MOI.EqualTo{FloatOrRational}) = _ROW_TYPE_EQUAL_TO
+_row_type(::MOI.Interval{FloatOrRational}) = _ROW_TYPE_INTERVAL
 
 @enum(
     _BoundEnum,
@@ -30,17 +31,17 @@ _row_type(::MOI.Interval{T}) where{T} = _ROW_TYPE_INTERVAL
     _BOUND_EQUAL_TO,
 )
 
-_bounds(s::MOI.EqualTo{T}) where{T} = s.value, s.value
-_bounds(s::MOI.LessThan{T}) where{T}  = T(-Inf), s.upper
-_bounds(s::MOI.GreaterThan{T}) where{T}  = s.lower, T(Inf)
-_bounds(s::MOI.Interval{T}) where{T}  = s.lower, s.upper
+_bounds(s::MOI.EqualTo{FloatOrRational}) = s.value, s.value
+_bounds(s::MOI.LessThan{FloatOrRational})  = FloatOrRational(-Inf), s.upper
+_bounds(s::MOI.GreaterThan{FloatOrRational})  = s.lower, FloatOrRational(Inf)
+_bounds(s::MOI.Interval{FloatOrRational}) = s.lower, s.upper
 
-const _SCALAR_SETS{T} = Union{
-    MOI.LessThan{T},
-    MOI.GreaterThan{T},
-    MOI.EqualTo{T},
-    MOI.Interval{T}
-} where{T}
+const _SCALAR_SETS{FloatOrRational} = Union{
+    MOI.LessThan{FloatOrRational},
+    MOI.GreaterThan{FloatOrRational},
+    MOI.EqualTo{FloatOrRational},
+    MOI.Interval{FloatOrRational}
+}
 
 # =============================================
 #      Variables Infos
@@ -71,12 +72,12 @@ mutable struct _VariableInfo{T}
         index::MOI.VariableIndex,
         column::Cint,
         bound::_BoundEnum = _BOUND_NONE,
-    ) where{T}
+    ) where{T <: FloatOrRational}
         return new{T}(index, "", column, bound, T(-Inf), T(Inf), "", "")
     end
 end
 
-function _update_info(info::_VariableInfo, s::MOI.GreaterThan{T}) where{T}
+function _update_info(info::_VariableInfo, s::MOI.GreaterThan{FloatOrRational})
     _throw_if_existing_lower(info, s)
     if info.bound == _BOUND_LESS_THAN
         info.bound = _BOUND_LESS_AND_GREATER_THAN
@@ -87,7 +88,7 @@ function _update_info(info::_VariableInfo, s::MOI.GreaterThan{T}) where{T}
     return
 end
 
-function _update_info(info::_VariableInfo, s::MOI.LessThan{T}) where{T}
+function _update_info(info::_VariableInfo, s::MOI.LessThan{FloatOrRational})
     _throw_if_existing_upper(info, s)
     if info.bound == _BOUND_GREATER_THAN
         info.bound = _BOUND_LESS_AND_GREATER_THAN
@@ -98,7 +99,7 @@ function _update_info(info::_VariableInfo, s::MOI.LessThan{T}) where{T}
     return
 end
 
-function _update_info(info::_VariableInfo, s::MOI.EqualTo{T}) where{T}
+function _update_info(info::_VariableInfo, s::MOI.EqualTo{FloatOrRational})
     _throw_if_existing_lower(info, s)
     _throw_if_existing_upper(info, s)
     info.bound = _BOUND_EQUAL_TO
@@ -107,7 +108,7 @@ function _update_info(info::_VariableInfo, s::MOI.EqualTo{T}) where{T}
     return
 end
 
-function _update_info(info::_VariableInfo, s::MOI.Interval{T}) where{T}
+function _update_info(info::_VariableInfo, s::MOI.Interval{FloatOrRational})
     _throw_if_existing_lower(info, s)
     _throw_if_existing_upper(info, s)
     info.bound = _BOUND_INTERVAL
@@ -142,7 +143,7 @@ mutable struct _ConstraintInfo{T}
     upper::T
 end
 
-function _ConstraintInfo(set::_SCALAR_SETS{T}) where{T}
+function _ConstraintInfo(set::_SCALAR_SETS{T}) where{T <: FloatOrRational}
     lower, upper = _bounds(set)
     return _ConstraintInfo{T}("", 0, _row_type(set), lower, upper)
 end
@@ -208,17 +209,11 @@ mutable struct Optimizer{T} <: MOI.AbstractOptimizer
     affine_constraint_info::typeof(_constraint_info_dict())
 
     # Mappings from variable and constraint names to their indices. These are
-    # lazily built on-demand, so most of the time, they are `nothing`.
-    name_to_variable::Union{
-        Nothing,
-        Dict{String,Union{Nothing,MOI.VariableIndex}},
-    }
-    name_to_constraint_index::Union{
-        Nothing,
-        Dict{String,Union{Nothing,MOI.ConstraintIndex}},
-    }
+    # lazily built on-demand, so most of the time, they are empty.
+    name_to_variable::Dict{String, MOI.VariableIndex}
+    name_to_constraint_index::Dict{String, MOI.ConstraintIndex}(),
 
-    # solution struct
+    # solution value
     solution::Cdouble
 
     # solution status
@@ -227,20 +222,17 @@ mutable struct Optimizer{T} <: MOI.AbstractOptimizer
     # primal
     primal::Vector{T}
     
-    # do we solve with rational numbers?
-    is_rational::Bool
-
     """
     Optimizer()
     Create a new Optimizer object.
     """
 
-    function Optimizer{T}() where{T}
+    function Optimizer{T}() where{T <: FloatOrRational}
         ptr = SoPlex_create()
         if ptr == C_NULL
              error("Unable to create an internal model via the C API.")
-         end
-         model = new{T}(
+        end
+        model = new{T}(
              ptr,
              "",
              false,
@@ -253,9 +245,14 @@ mutable struct Optimizer{T} <: MOI.AbstractOptimizer
              -3,
              Vector{T}(undef, 0),
              false,)
-         MOI.empty!(model)
-         finalizer(SoPlex_free, model)
-         return model
+        MOI.empty!(model)
+        finalizer(SoPlex_free, model)
+
+        if T == Rational{Int64}
+            SoPlex_setRational(model)
+        end
+
+        return model
     end
 end
 
@@ -268,8 +265,8 @@ function MOI.empty!(model::Optimizer)
     model.is_feasibility = true
     empty!(model.variable_info)
     empty!(model.affine_constraint_info)
-    model.name_to_variable = nothing
-    model.name_to_constraint_index = nothing
+    model.name_to_variable = _variable_info_dict()
+    model.name_to_constraint_index = _constraint_info_dict()
     model.solution = 0.0
     model.status = -3
     return
@@ -282,8 +279,8 @@ function MOI.is_empty(model::Optimizer)
            model.is_feasibility &&
            isempty(model.variable_info) &&
            isempty(model.affine_constraint_info) &&
-           model.name_to_variable === nothing &&
-           model.name_to_constraint_index === nothing &&
+           model.name_to_variable === _variable_info_dict() &&
+           model.name_to_constraint_index === _constraint_info_dict() &&
            model.solution == 0.0 &&
            model.status == -3
 end
@@ -309,14 +306,6 @@ end
 function MOI.get(::Optimizer, ::MOI.ListOfConstraintAttributesSet)
     return MOI.AbstractConstraintAttribute[MOI.ConstraintName()]
 end
-
-struct RationalSolve <: MOI.AbstractOptimizerAttribute end
-function MOI.set(model::Optimizer, ::RationalSolve)
-   # use rational SoPlex
-   SoPlex_setRational(model)
-   model.is_rational = true
-end
-
 
 """
     MOI.Name
@@ -359,7 +348,7 @@ function _store_solution(model::Optimizer)
     end 
 end
 
-function _store_primal(model::Optimizer{T}) where{T}
+function _store_primal(model::Optimizer{T}) where{T <: FloatOrRational}
     nvars = SoPlex_numCols(model)
     primalptr = ones(Cdouble, nvars)
     primal = ones(T, nvars)

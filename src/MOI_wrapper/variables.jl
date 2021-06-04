@@ -89,30 +89,36 @@ function MOI.is_valid(model::Optimizer, v::MOI.VariableIndex)
     return haskey(model.variable_info, v)
 end
 
-function MOI.add_variable(model::Optimizer)
+function MOI.add_variable(model::Optimizer{Float64})
     # Initialize `_VariableInfo` with a dummy `VariableIndex` and a column,
-    # because we need `add_item` to tell us what the `VariableIndex` is. 
-    if model.is_rational
-        index = CleverDicts.add_item(
-            model.variable_info,
-            _VariableInfo{Rational{Int64}}(MOI.VariableIndex(0), Cint(0)),)
-    else
-        index = CleverDicts.add_item(
-            model.variable_info,
-            _VariableInfo{Float64}(MOI.VariableIndex(0), Cint(0)),)
-    end
-    
+    # because we need `add_item` to tell us what the `VariableIndex` is.
+    index = CleverDicts.add_item(
+        model.variable_info,
+        _VariableInfo{Float64}(MOI.VariableIndex(0), Cint(0)),)
+
     info = _info(model, index)
     # Now, set `.index` and `.column`.
     info.index = index
     info.column = Cint(length(model.variable_info) - 1)
-    
-    # add rational or real variable, depending on is_rational
-    if model.is_rational == true
-        SoPlex_addColRational(model, C_NULL, C_NULL, 0, 0, 0, 0, -inf, 1, inf, 1)
-    else
-        SoPlex_addColReal(model, C_NULL, 0, 0, 0, -Inf, Inf)
-    end
+
+    SoPlex_addColReal(model, C_NULL, 0, 0, 0, -Inf, Inf)
+
+    return index
+end
+
+function MOI.add_variable(model::Optimizer{Rational{Int64}})
+    # Initialize `_VariableInfo` with a dummy `VariableIndex` and a column,
+    # because we need `add_item` to tell us what the `VariableIndex` is. 
+    index = CleverDicts.add_item(
+        model.variable_info,
+        _VariableInfo{Rational{Int64}}(MOI.VariableIndex(0), Cint(0)),)
+
+    info = _info(model, index)
+    # Now, set `.index` and `.column`.
+    info.index = index
+    info.column = Cint(length(model.variable_info) - 1)
+
+    SoPlex_addColRational(model, C_NULL, C_NULL, 0, 0, 0, 0, -inf, 1, inf, 1)
 
     return index
 end
