@@ -371,7 +371,7 @@ function MOI.optimize!(model::Optimizer)
             Base.Libc.flush_cstdio()
         end
         readline(path) 
-    end;
+    end
     #SoPlex_writeFileReal(model, "/scratch/opt/bzfchmie/test.lp")
     #model.status = SoPlex_optimize(model)
     #if model.status == 2
