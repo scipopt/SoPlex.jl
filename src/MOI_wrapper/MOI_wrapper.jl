@@ -303,10 +303,6 @@ function MOI.get(::Optimizer, ::MOI.ListOfConstraintAttributesSet)
     return MOI.AbstractConstraintAttribute[MOI.ConstraintName()]
 end
 
-"""
-    MOI.Name
-
-"""
 
 MOI.supports(::Optimizer, ::MOI.Name) = true
 
