@@ -378,9 +378,6 @@ function MOI.optimize!(model::Optimizer)
 end
 
 function MOI.get(model::Optimizer, ::MOI.TerminationStatus)
-    #if !model.solution.optimize_called
-    #    return MOI.OPTIMIZE_NOT_CALLED
-    #end
     status = model.status
     if status == -15 # an error occured
         return MOI.OTHER_ERROR
