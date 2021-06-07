@@ -202,7 +202,7 @@ end
 function _throw_if_existing_upper(
     info::_VariableInfo{T},
     ::S,
-) where { T <: FloatorRational,S<:MOI.AbstractSet}
+) where {T<:FloatorRational, S<:MOI.AbstractSet}
     if info.bound == _BOUND_LESS_AND_GREATER_THAN
         throw(MOI.UpperBoundAlreadySet{MOI.LessThan{T},S}(info.index))
     elseif info.bound == _BOUND_LESS_THAN
@@ -344,4 +344,3 @@ function MOI.add_constraint(
 
     return MOI.ConstraintIndex{typeof(f),typeof(s)}(key.value)
 end
-
