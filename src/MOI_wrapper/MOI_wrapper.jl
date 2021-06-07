@@ -310,10 +310,6 @@ MOI.get(model::Optimizer, ::MOI.Name) = model.name
 
 MOI.set(model::Optimizer, ::MOI.Name, name::String) = (model.name = name)
 
-"""
-   Optimize Methods
-
-"""
 
 function _store_solution(model::Optimizer)
     x = model.solution_value
