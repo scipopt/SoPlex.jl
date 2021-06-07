@@ -214,7 +214,7 @@ mutable struct Optimizer{T} <: MOI.AbstractOptimizer
     name_to_constraint_index::Dict{String, MOI.ConstraintIndex}(),
 
     # solution value
-    solution::Cdouble
+    solution_value::Cdouble
 
     # solution status
     status::Cint
@@ -263,7 +263,7 @@ function MOI.empty!(model::Optimizer)
     empty!(model.affine_constraint_info)
     model.name_to_variable = _variable_info_dict()
     model.name_to_constraint_index = _constraint_info_dict()
-    model.solution = 0.0
+    model.solution_value = 0.0
     model.status = -3
     return
 end
@@ -277,7 +277,7 @@ function MOI.is_empty(model::Optimizer)
            isempty(model.affine_constraint_info) &&
            model.name_to_variable === _variable_info_dict() &&
            model.name_to_constraint_index === _constraint_info_dict() &&
-           model.solution == 0.0 &&
+           model.solution_value == 0.0 &&
            model.status == -3
 end
 
@@ -316,7 +316,7 @@ MOI.set(model::Optimizer, ::MOI.Name, name::String) = (model.name = name)
 """
 
 function _store_solution(model::Optimizer)
-    x = model.solution
+    x = model.solution_value
     
     x.optimize_called = true
     x.has_solution = false
