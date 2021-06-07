@@ -222,10 +222,6 @@ mutable struct Optimizer{T} <: MOI.AbstractOptimizer
     # primal
     primal::Vector{T}
     
-    """
-    Optimizer()
-    Create a new Optimizer object.
-    """
 
     function Optimizer{T}() where{T <: FloatOrRational}
         ptr = SoPlex_create()
