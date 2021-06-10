@@ -1,8 +1,8 @@
 import MathOptInterface
 const MOI = MathOptInterface
 const CleverDicts = MOI.Utilities.CleverDicts
-global inf = 2^31 - 1
-FloatOrRational = Union{Float64, Rational{Int32}}
+const inf = 2^31 - 1
+const FloatOrRational = Union{Float64, Rational{Int32}}
 
 # ==============================================================================
 #           HELPER FUNCTIONS
@@ -119,8 +119,9 @@ end
 
 function _variable_info_dict()
     return CleverDicts.CleverDict{MOI.VariableIndex,_VariableInfo}(
-        x::MOI.VariableIndex -> x.value,
-        x::Int64 -> MOI.VariableIndex(x),)
+        vi -> vi.value,
+        x -> MOI.VariableIndex(x),
+    )
 end
 
 # =============================================
@@ -149,13 +150,13 @@ function _ConstraintInfo(set::_SCALAR_SETS{T}) where{T <: FloatOrRational}
 end
 
 struct _ConstraintKey
-    value::Int64
+    value::Int
 end
 
 function _constraint_info_dict()
     return CleverDicts.CleverDict{_ConstraintKey,_ConstraintInfo}(
         x::_ConstraintKey -> x.value,
-        x::Int64 -> _ConstraintKey(x),
+        x::Int -> _ConstraintKey(x),
     )
 end
 
@@ -187,10 +188,9 @@ end
 """
     Optimizer
 
-Wrapper for MOI.
+Wrapper for MathOptInterface.
 """
-
-mutable struct Optimizer{T} <: MOI.AbstractOptimizer
+mutable struct Optimizer{T, VT, CT} <: MOI.AbstractOptimizer
     # A pointer to the underlying SoPlex optimizer.
     inner::Ptr{Cvoid}
 
@@ -205,13 +205,13 @@ mutable struct Optimizer{T} <: MOI.AbstractOptimizer
     # SoPlex doesn't support constants in the objective function.
     objective_constant::T
 
-    variable_info::typeof(_variable_info_dict())
-    affine_constraint_info::typeof(_constraint_info_dict())
+    variable_info::VT
+    affine_constraint_info::CT
 
     # Mappings from variable and constraint names to their indices. These are
     # lazily built on-demand, so most of the time, they are empty.
     name_to_variable::Dict{String, MOI.VariableIndex}
-    name_to_constraint_index::Dict{String, MOI.ConstraintIndex}(),
+    name_to_constraint_index::Dict{String, MOI.ConstraintIndex}
 
     # solution value
     solution_value::Cdouble
@@ -222,29 +222,31 @@ mutable struct Optimizer{T} <: MOI.AbstractOptimizer
     # primal
     primal::Vector{T}
     
-
-    function Optimizer{T}() where{T <: FloatOrRational}
+    function Optimizer{T}() where {T <: FloatOrRational}
         ptr = SoPlex_create()
         if ptr == C_NULL
              error("Unable to create an internal model via the C API.")
         end
-        model = new{T}(
+        vdict = _variable_info_dict()
+        cdict = _constraint_info_dict()
+        model = new{T, typeof(vdict), typeof(cdict)}(
              ptr,
              "",
              false,
              T(0),
-             _variable_info_dict(),
-             _constraint_info_dict(),
+             vdict,
+             cdict,
              nothing,
              nothing,
              0.0,
              -3,
-             Vector{T}(undef, 0),
-             false,)
+             Vector{T}(),
+             false,
+        )
         MOI.empty!(model)
         finalizer(SoPlex_free, model)
 
-        if T == Rational{Int64}
+        if T == Rational{Int}
             SoPlex_setRational(model)
         end
 

@@ -7,7 +7,7 @@ function MOI.supports_constraint(
     ::Optimizer{T},
     ::Type{MOI.SingleVariable},
     ::Type{_SCALAR_SETS{T}},
-) where { T <: FloatorRational}
+) where { T <: FloatOrRational}
     return true
 end
 
@@ -16,14 +16,14 @@ function MOI.supports_constraint(
     ::Optimizer,
     ::Type{MOI.ScalarAffineFunction{T}},
     ::Type{<:_SCALAR_SETS{T}},
-) where{T <: FloatorRational}
+) where{T <: FloatOrRational}
     return true
 end
 
 function MOI.is_valid(
     model::Optimizer,
     c::MOI.ConstraintIndex{MOI.ScalarAffineFunction{T},S},
-) where { T <: FloatorRational, S<:_SCALAR_SETS}
+) where { T <: FloatOrRational, S<:_SCALAR_SETS}
     key = _ConstraintKey(c.value)
     info = get(model.affine_constraint_info, key, nothing)
     if info === nothing
@@ -35,7 +35,7 @@ end
 function MOI.is_valid(
     model::Optimizer,
     c::MOI.ConstraintIndex{MOI.SingleVariable, MOI.LessThan{T}},
-) where{T <: FloatorRational}
+) where{T <: FloatOrRational}
     if haskey(model.variable_info, MOI.VariableIndex(c.value))
         info = _info(model, c)
         return info.bound == _BOUND_LESS_THAN ||
@@ -47,7 +47,7 @@ end
 function MOI.is_valid(
     model::Optimizer,
     c::MOI.ConstraintIndex{MOI.SingleVariable, MOI.GreaterThan{T}},
-) where{T <: FloatorRational}
+) where{T <: FloatOrRational}
     if haskey(model.variable_info, MOI.VariableIndex(c.value))
         info = _info(model, c)
         return info.bound == _BOUND_GREATER_THAN ||
@@ -59,7 +59,7 @@ end
 function MOI.is_valid(
     model::Optimizer,
     c::MOI.ConstraintIndex{MOI.SingleVariable, MOI.Interval{T}},
-) where{T <: FloatorRational}
+) where{T <: FloatOrRational}
     return haskey(model.variable_info, MOI.VariableIndex(c.value)) &&
            _info(model, c).bound == _BOUND_INTERVAL
 end
@@ -67,7 +67,7 @@ end
 function MOI.is_valid(
     model::Optimizer,
     c::MOI.ConstraintIndex{MOI.SingleVariable, MOI.EqualTo{T}},
-) where{T <: FloatorRational}
+) where{T <: FloatOrRational}
     return haskey(model.variable_info, MOI.VariableIndex(c.value)) &&
            _info(model, c).bound == _BOUND_EQUAL_TO
 end
@@ -76,22 +76,22 @@ end
 #      Helper functions
 # =============================================
 
-function _bound_enums(::Type{MOI.LessThan{T}}) where{T <: FloatorRational}
+function _bound_enums(::Type{MOI.LessThan{T}}) where{T <: FloatOrRational}
     return (_BOUND_LESS_THAN, _BOUND_LESS_AND_GREATER_THAN)
 end
 
-function _bound_enums(::Type{MOI.GreaterThan{T}}) where{T <: FloatorRational}
+function _bound_enums(::Type{MOI.GreaterThan{T}}) where{T <: FloatOrRational}
     return (_BOUND_GREATER_THAN, _BOUND_LESS_AND_GREATER_THAN)
 end
 
-_bound_enums(::Type{MOI.Interval{T}}) where{T <: FloatorRational} = (_BOUND_INTERVAL,)
+_bound_enums(::Type{MOI.Interval{T}}) where{T <: FloatOrRational} = (_BOUND_INTERVAL,)
 
-_bound_enums(::Type{MOI.EqualTo{T}}) where{T <: FloatorRational} = (_BOUND_EQUAL_TO,)
+_bound_enums(::Type{MOI.EqualTo{T}}) where{T <: FloatOrRational} = (_BOUND_EQUAL_TO,)
 
 function MOI.get(
     model::Optimizer,
     ::MOI.ListOfConstraintIndices{MOI.SingleVariable,S},
-) where { T <: FloatorRational, S<:_SCALAR_SETS{T}}
+) where { T <: FloatOrRational, S<:_SCALAR_SETS{T}}
     indices = MOI.ConstraintIndex{MOI.SingleVariable,S}[
         MOI.ConstraintIndex{MOI.SingleVariable,S}(key.value) for
         (key, info) in model.variable_info if info.bound in _bound_enums(S)
@@ -127,7 +127,7 @@ end
 function MOI.get(
     model::Optimizer,
     ::MOI.ListOfConstraintIndices{MOI.ScalarAffineFunction{T},S},
-) where { T <: FloatorRational, S<:_SCALAR_SETS}
+) where { T <: FloatOrRational, S<:_SCALAR_SETS}
     indices = MOI.ConstraintIndex{MOI.ScalarAffineFunction{T},S}[
         MOI.ConstraintIndex{MOI.ScalarAffineFunction{T},S}(key.value)
         for (key, info) in model.affine_constraint_info if _set(info) isa S
@@ -138,7 +138,7 @@ end
 function _info(
     model::Optimizer,
     c::MOI.ConstraintIndex{MOI.ScalarAffineFunction{T},<:_SCALAR_SETS},
-) where{T <: FloatorRational}
+) where{T <: FloatOrRational}
     key = _ConstraintKey(c.value)
     if haskey(model.affine_constraint_info, key)
         return model.affine_constraint_info[key]
@@ -149,7 +149,7 @@ end
 function row(
     model::Optimizer,
     c::MOI.ConstraintIndex{MOI.ScalarAffineFunction{T},<:_SCALAR_SETS},
-) where{T <: FloatorRational}
+) where{T <: FloatOrRational}
     return _info(model, c).row
 end
 
@@ -186,7 +186,7 @@ end
 function _throw_if_existing_lower(
     info::_VariableInfo{T},
     ::S,
-) where { T <: FloatorRational,S<:MOI.AbstractSet}
+) where { T <: FloatOrRational,S<:MOI.AbstractSet}
     if info.bound == _BOUND_LESS_AND_GREATER_THAN
         throw(MOI.LowerBoundAlreadySet{MOI.GreaterThan{T},S}(info.index))
     elseif info.bound == _BOUND_GREATER_THAN
@@ -202,7 +202,7 @@ end
 function _throw_if_existing_upper(
     info::_VariableInfo{T},
     ::S,
-) where {T<:FloatorRational, S<:MOI.AbstractSet}
+) where {T<:FloatOrRational, S<:MOI.AbstractSet}
     if info.bound == _BOUND_LESS_AND_GREATER_THAN
         throw(MOI.UpperBoundAlreadySet{MOI.LessThan{T},S}(info.index))
     elseif info.bound == _BOUND_LESS_THAN
@@ -223,7 +223,7 @@ function MOI.add_constraint(
     model::Optimizer,
     f::MOI.SingleVariable,
     s::_SCALAR_SETS{T},
-) where{T <: FloatorRational}
+) where{T <: FloatOrRational}
     info = _info(model, f.variable)
     _update_info(info, s)
     index = MOI.ConstraintIndex{MOI.SingleVariable,typeof(s)}(f.variable.value)
