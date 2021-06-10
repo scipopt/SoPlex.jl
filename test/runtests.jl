@@ -7,3 +7,6 @@ using Test
     @test SoPlex.SoPlex_numCols(soplex) == 0
     SoPlex.SoPlex_free(soplex)
 end
+
+# add tests for MOI wrapper
+include("MOI_wrapper.jl")
