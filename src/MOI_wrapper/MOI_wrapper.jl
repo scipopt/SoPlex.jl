@@ -16,10 +16,10 @@ const FloatOrRational = Union{Float64, Rational{Int32}}
     _ROW_TYPE_EQUAL_TO,
 )
 
-_row_type(::MOI.GreaterThan{FloatOrRational})  = _ROW_TYPE_GREATERTHAN
-_row_type(::MOI.LessThan{FloatOrRational}) = _ROW_TYPE_LESSTHAN
-_row_type(::MOI.EqualTo{FloatOrRational}) = _ROW_TYPE_EQUAL_TO
-_row_type(::MOI.Interval{FloatOrRational}) = _ROW_TYPE_INTERVAL
+_row_type(::MOI.GreaterThan{T}) where {T <: FloatOrRational} = _ROW_TYPE_GREATERTHAN
+_row_type(::MOI.LessThan{T}) where {T <: FloatOrRational} = _ROW_TYPE_LESSTHAN
+_row_type(::MOI.EqualTo{T}) where {T <: FloatOrRational} = _ROW_TYPE_EQUAL_TO
+_row_type(::MOI.Interval{T}) where {T <: FloatOrRational} = _ROW_TYPE_INTERVAL
 
 @enum(
     _BoundEnum,
@@ -31,10 +31,10 @@ _row_type(::MOI.Interval{FloatOrRational}) = _ROW_TYPE_INTERVAL
     _BOUND_EQUAL_TO,
 )
 
-_bounds(s::MOI.EqualTo{FloatOrRational}) = s.value, s.value
-_bounds(s::MOI.LessThan{FloatOrRational})  = FloatOrRational(-Inf), s.upper
-_bounds(s::MOI.GreaterThan{FloatOrRational})  = s.lower, FloatOrRational(Inf)
-_bounds(s::MOI.Interval{FloatOrRational}) = s.lower, s.upper
+_bounds(s::MOI.EqualTo{T}) where {T <: FloatOrRational} = s.value, s.value
+_bounds(s::MOI.LessThan{T}) where {T <: FloatOrRational}  = T(-Inf), s.upper
+_bounds(s::MOI.GreaterThan{T}) where {T <: FloatOrRational} = s.lower, T(Inf)
+_bounds(s::MOI.Interval{T}) where {T <: FloatOrRational} = s.lower, s.upper
 
 const _SCALAR_SETS{FloatOrRational} = Union{
     MOI.LessThan{FloatOrRational},
@@ -77,7 +77,7 @@ mutable struct _VariableInfo{T}
     end
 end
 
-function _update_info(info::_VariableInfo, s::MOI.GreaterThan{FloatOrRational})
+function _update_info(info::_VariableInfo, s::MOI.GreaterThan{T}) where{T <: FloatOrRational}
     _throw_if_existing_lower(info, s)
     if info.bound == _BOUND_LESS_THAN
         info.bound = _BOUND_LESS_AND_GREATER_THAN
@@ -88,7 +88,7 @@ function _update_info(info::_VariableInfo, s::MOI.GreaterThan{FloatOrRational})
     return
 end
 
-function _update_info(info::_VariableInfo, s::MOI.LessThan{FloatOrRational})
+function _update_info(info::_VariableInfo, s::MOI.LessThan{T}) where{T <: FloatOrRational}
     _throw_if_existing_upper(info, s)
     if info.bound == _BOUND_GREATER_THAN
         info.bound = _BOUND_LESS_AND_GREATER_THAN
@@ -99,7 +99,7 @@ function _update_info(info::_VariableInfo, s::MOI.LessThan{FloatOrRational})
     return
 end
 
-function _update_info(info::_VariableInfo, s::MOI.EqualTo{FloatOrRational})
+function _update_info(info::_VariableInfo, s::MOI.EqualTo{T}) where{T <: FloatOrRational}
     _throw_if_existing_lower(info, s)
     _throw_if_existing_upper(info, s)
     info.bound = _BOUND_EQUAL_TO
@@ -108,7 +108,7 @@ function _update_info(info::_VariableInfo, s::MOI.EqualTo{FloatOrRational})
     return
 end
 
-function _update_info(info::_VariableInfo, s::MOI.Interval{FloatOrRational})
+function _update_info(info::_VariableInfo, s::MOI.Interval{T}) where{T <: FloatOrRational}
     _throw_if_existing_lower(info, s)
     _throw_if_existing_upper(info, s)
     info.bound = _BOUND_INTERVAL
@@ -236,12 +236,11 @@ mutable struct Optimizer{T, VT, CT} <: MOI.AbstractOptimizer
              T(0),
              vdict,
              cdict,
-             nothing,
-             nothing,
+             Dict{String,MOI.VariableIndex}(),
+             Dict{String,MOI.ConstraintIndex}(),
              0.0,
              -3,
              Vector{T}(),
-             false,
         )
         MOI.empty!(model)
         finalizer(SoPlex_free, model)
@@ -263,8 +262,8 @@ function MOI.empty!(model::Optimizer)
     model.is_feasibility = true
     empty!(model.variable_info)
     empty!(model.affine_constraint_info)
-    model.name_to_variable = _variable_info_dict()
-    model.name_to_constraint_index = _constraint_info_dict()
+    model.name_to_variable = Dict{String,MOI.VariableIndex}()
+    model.name_to_constraint_index = Dict{String,MOI.ConstraintIndex}()
     model.solution_value = 0.0
     model.status = -3
     return
@@ -277,8 +276,8 @@ function MOI.is_empty(model::Optimizer)
            model.is_feasibility &&
            isempty(model.variable_info) &&
            isempty(model.affine_constraint_info) &&
-           model.name_to_variable === _variable_info_dict() &&
-           model.name_to_constraint_index === _constraint_info_dict() &&
+           model.name_to_variable === Dict{String,MOI.VariableIndex}() &&
+           model.name_to_constraint_index === Dict{String,MOI.ConstraintIndex}() &&
            model.solution_value == 0.0 &&
            model.status == -3
 end

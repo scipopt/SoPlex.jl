@@ -40,7 +40,7 @@ function MOI.set(
 )
     info = _info(model, v)
     info.name = name
-    model.name_to_variable = nothing
+    model.name_to_variable = Dict{String,MOI.VariableIndex}()
     return
 end
 
