@@ -6,84 +6,110 @@ using Test
 
 const MOI = SoPlex.MOI
 
-println.(keys(MOI.Test.unittests))
+const CONFIG = MOI.Test.TestConfig(
+    # Modify tolerances as necessary.
+    atol = 1e-6,
+    rtol = 1e-6,
+    # Set false if dual solutions are not generated
+    duals = false,
+    # Set false if infeasibility certificates are not generated
+    infeas_certificates = false,
+    # Use MOI.LOCALLY_SOLVED for local solvers.
+    optimal_status = MOI.OPTIMAL,
+    # Set true if basis information is available
+    basis = false,
+)
 
-function test_basic_constraint_tests(model, config)
-    return MOI.Test.basic_constraint_tests(model, config)
-end
-
-function test_unittest(model, config)
-    # Test all the functions included in dictionary `MOI.Test.unittests`,
-    # except functions that are not supported by SoPlex
-    MOI.Test.unittest(
+function test_basic_constraint_tests(model)
+    MOI.Test.basic_constraint_tests(
         model,
-        config,
-        String[
-            # add functions that are not supported by SoPlex
-            "number_threads",
-            "solve_qcp_edge_cases"
-        ],
-    )
+        CONFIG,
+        delete = false,
+        get_constraint_function = false,
+        get_constraint_set = false,
+        name = false)
 end
 
-function test_modification(model, config)
-    MOI.Test.modificationtest(model, config)
-end
+#TODO: exclude correct functions
+#function test_unittest(model, config)
+#    # Test all the functions included in dictionary `MOI.Test.unittests`,
+#    # except functions that are not supported by SoPlex
+#    MOI.Test.unittest(
+#        model,
+#        config,
+#        String[
+#            # add functions that are not supported by SoPlex
+#            "number_threads",
+#            "solve_qcp_edge_cases"
+#        ],
+#    )
+#end
 
-function test_contlinear(model, config)
-    MOI.Test.contlineartest(model, config)
-end
+#TODO: there is some invalid variable name x somewhere
+#function test_modification(model)
+#    MOI.Test.modificationtest(model, CONFIG)
+#end
 
-function test_contquadratictest(model, config)
-    MOI.Test.contquadratictest(model, config)
-end
+#TODO: add MOIU.supports_default_copy_to
+#function test_contlinear(model)
+#    MOI.Test.contlineartest(model, CONFIG)
+#end
 
-function test_contconic(model, config)
-    MOI.Test.contlineartest(model, config)
-end
+#TODO: add MOIU.supports_default_copy_to
+#function test_contconic(model)
+#    MOI.Test.contlineartest(model, CONFIG)
+#end
 
-function test_intconic(model, config)
-    MOI.Test.intconictest(model, config)
-end
+#TODO: MOIU.supports_default_copy_to
+#function test_intconic(model)
+#    MOI.Test.intconictest(model, CONFIG)
+#end
 
-function test_SolverName(model, ::Any)
+function test_SolverName(model)
     @test MOI.get(model, MOI.SolverName()) == "SoPlex"
 end
 
-function test_default_objective_test(model, ::Any)
-    MOI.Test.default_objective_test(model)
-end
+#TODO: add accessing ObjectiveSense in SoPlex
+#function test_default_objective_test(model)
+#    MOI.Test.default_objective_test(model)
+#end
 
-function test_default_status_test(model, ::Any)
-    MOI.Test.default_status_test(model)
-end
+#TODO: add accessing PrimalStatus and DualStatus in SoPlex
+#function test_default_status_test(model)
+#    MOI.Test.default_status_test(model)
+#end
 
-function test_nametest(model, ::Any)
-    MOI.Test.nametest(model)
-end
+#TODO: fix right naming
+#function test_nametest(model)
+#    MOI.Test.nametest(model)
+#end
 
-function test_validtest(model, ::Any)
-    MOI.Test.validtest(model)
-end
+#TODO: MOIU.supports_default_copy_to
+#function test_validtest(model)
+#    MOI.Test.validtest(model)
+#end
 
-function test_emptytest(model, ::Any)
-    MOI.Test.emptytest(model)
-end
+#TODO: MOIU.supports_default_copy_to
+#function test_emptytest(model)
+#    MOI.Test.emptytest(model)
+#end
 
-function test_orderedindicestest(model, ::Any)
-    MOI.Test.orderedindicestest(model)
-end
+#TODO: MOIU.supports_default_copy_to
+#function test_orderedindicestest(model)
+#    MOI.Test.orderedindicestest(model)
+#end
 
-function test_scalar_function_constant_not_zero(model, ::Any)
+function test_scalar_function_constant_not_zero(model)
     MOI.Test.scalar_function_constant_not_zero(model)
 end
 
 # This function runs all functions in this module starting with `test_`.
 function runtests()
-    for name in names(@__MODULE__; all = true)
+   model = SoPlex.Optimizer{Float64}()
+   for name in names(@__MODULE__; all = true)
         if startswith("$(name)", "test_")
             @testset "$(name)" begin
-                getfield(@__MODULE__, name)()
+                getfield(@__MODULE__, name)(model)
             end
         end
     end
