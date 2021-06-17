@@ -72,6 +72,10 @@ function MOI.is_valid(
            _info(model, c).bound == _BOUND_EQUAL_TO
 end
 
+function MOI.get(model::Optimizer, ::MOI.NumberOfConstraints{F,S}) where {F,S}
+    return length(MOI.get(model, MOI.ListOfConstraintIndices{F,S}()))
+end
+
 # =============================================
 #      Helper functions
 # =============================================

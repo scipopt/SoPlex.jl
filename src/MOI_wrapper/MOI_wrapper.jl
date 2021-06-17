@@ -375,7 +375,7 @@ function MOI.get(model::Optimizer, ::MOI.TerminationStatus)
     elseif status == -4  # Basis is singular, numerical troubles?
         return MOI.OTHER_ERROR
     elseif status == -3  # No Problem has been loaded
-        return MOI.INVALID_MODEL
+        return MOI.OPTIMIZE_NOT_CALLED
     elseif status == -2  # LP has a usable Basis (maybe LP is changed)
         return MOI.OTHER_ERROR
     elseif status == -1  # algorithm is running

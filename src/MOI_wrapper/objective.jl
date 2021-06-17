@@ -2,7 +2,33 @@
 #      Supported objectives
 # =============================================
 
-MOI.supports(::Optimizer, ::MOI.ObjectiveSense) = true
+MOI.supports(::Optimizer, ::MOI.ObjectiveSense) = false
+
+function MOI.set(
+    model::Optimizer{T},
+    ::MOI.ObjectiveSense,
+    sense::MOI.OptimizationSense,
+) where {T <: FloatOrRational}
+    x = sense == MOI.MAX_SENSE ? Cint(1) : Cint(-1)
+    SoPlex_setIntParam(model, Cint(0), x)
+    if sense == MOI.FEASIBILITY_SENSE
+        model.is_feasibility = true
+        model.objective_constant = T(0.0)
+    else
+        model.is_feasibility = false
+    end
+    return
+end
+
+#function MOI.get(model::Optimizer, ::MOI.ObjectiveSense)
+#    if model.is_feasibility
+#        return MOI.FEASIBILITY_SENSE
+#    end
+#    senseP = Ref{Cint}()
+#    ret = Highs_getObjectiveSense(model, senseP)
+#    _check_ret(ret)
+#    return senseP[] == 1 ? MOI.MIN_SENSE : MOI.MAX_SENSE
+#end
 
 function MOI.supports(
     ::Optimizer{T},
