@@ -311,32 +311,6 @@ MOI.get(model::Optimizer, ::MOI.Name) = model.name
 
 MOI.set(model::Optimizer, ::MOI.Name, name::String) = (model.name = name)
 
-
-function _store_solution(model::Optimizer)
-    x = model.solution_value
-    
-    x.optimize_called = true
-    x.has_solution = false
-    
-    numcols = SoPlex_numCols(model)
-    numrows = SoPlex_numRows(model)
-    
-    resize!(x.colvalue, numcols)
-    resize!(x.coldual, numcols)
-    resize!(x.colstatus, numcols)
-    resize!(x.rowvalue, numrows)
-    resize!(x.rowdual, numrows)
-    resize!(x.rowstatus, numrows)
-    
-    # Load the solution if optimal.
-    if Highs_getModelStatus(model.inner, Cint(0)) == 9
-        Highs_getSolution(model, x.colvalue, x.coldual, x.rowvalue, x.rowdual)
-        Highs_getBasis(model, x.colstatus, x.rowstatus) 
-        x.has_solution = true 
-        return
-    end 
-end
-
 function _store_primal(model::Optimizer{T}) where{T <: FloatOrRational}
     nvars = SoPlex_numCols(model)
     primalptr = ones(Cdouble, nvars)
