@@ -2,6 +2,24 @@
 #     Supported constraints and attributes
 # =============================================
 
+function MOI.supports(
+    ::Optimizer,
+    ::MOI.ConstraintName,
+    ::Type{<:MOI.ConstraintIndex{MOI.SingleVariable,<:_SCALAR_SETS}},
+)
+    return true
+end
+
+function MOI.supports(
+    ::Optimizer,
+    ::MOI.ConstraintName,
+    ::Type{
+        <:MOI.ConstraintIndex{MOI.ScalarAffineFunction{T},<:_SCALAR_SETS},
+    },
+) where {T <: FloatOrRational}
+    return true
+end
+
 # Variable bounds
 function MOI.supports_constraint(
     ::Optimizer{T},
@@ -94,6 +112,37 @@ _bound_enums(::Type{MOI.EqualTo{T}}) where{T <: FloatOrRational} = (_BOUND_EQUAL
 
 function MOI.get(
     model::Optimizer,
+    ::MOI.ConstraintName,
+    c::MOI.ConstraintIndex{MOI.SingleVariable,S},
+) where {S<:_SCALAR_SETS}
+    MOI.throw_if_not_valid(model, c)
+    info = _info(model, c)
+    if S <: MOI.LessThan
+        return info.lessthan_name
+    else
+        return info.greaterthan_interval_or_equalto_name
+    end
+end
+
+function MOI.set(
+    model::Optimizer,
+    ::MOI.ConstraintName,
+    c::MOI.ConstraintIndex{MOI.SingleVariable,S},
+    name::String,
+) where {S<:_SCALAR_SETS}
+    MOI.throw_if_not_valid(model, c)
+    info = _info(model, c)
+    if S <: MOI.LessThan
+        info.lessthan_name = name
+    else
+        info.greaterthan_interval_or_equalto_name = name
+    end
+    model.name_to_constraint_index = Dict{String,MOI.ConstraintIndex}()
+    return
+end
+
+function MOI.get(
+    model::Optimizer,
     ::MOI.ListOfConstraintIndices{MOI.SingleVariable,S},
 ) where { T <: FloatOrRational, S<:_SCALAR_SETS{T}}
     indices = MOI.ConstraintIndex{MOI.SingleVariable,S}[
@@ -101,6 +150,101 @@ function MOI.get(
         (key, info) in model.variable_info if info.bound in _bound_enums(S)
     ]
     return sort!(indices, by = x -> x.value)
+end
+
+function MOI.set(
+    model::Optimizer{T},
+    ::MOI.ConstraintName,
+    c::MOI.ConstraintIndex{MOI.ScalarAffineFunction{T},<:Any},
+    name::String,
+) where {T <: FloatOrRational}
+    info = _info(model, c)
+    info.name = name
+    model.name_to_constraint_index = Dict{String,MOI.ConstraintIndex}()
+    return
+end
+
+function MOI.get(model::Optimizer, ::Type{MOI.ConstraintIndex}, name::String)
+    if model.name_to_constraint_index == Dict{String,MOI.ConstraintIndex}()
+        _rebuild_name_to_constraint_index(model)
+    end
+    if haskey(model.name_to_constraint_index, name)
+        constr = model.name_to_constraint_index[name]
+        if constr == Dict{String,MOI.ConstraintIndex}()
+            error("Duplicate constraint name detected: $(name)")
+        end
+        return constr
+    end
+    return nothing
+end
+
+function MOI.get(
+    model::Optimizer,
+    C::Type{MOI.ConstraintIndex{F,S}},
+    name::String,
+) where {F,S}
+    index = MOI.get(model, MOI.ConstraintIndex, name)
+    if index isa C
+        return index::MOI.ConstraintIndex{F,S}
+    end
+    return Dict{String,MOI.ConstraintIndex}()
+end
+
+function _rebuild_name_to_constraint_index(model::Optimizer{T}) where {T <: FloatOrRational}
+    model.name_to_constraint_index = Dict{String,MOI.ConstraintIndex}()
+    for (key, info) in model.affine_constraint_info
+        if isempty(info.name)
+            continue
+        end
+        S = typeof(_set(info))
+        _set_name_to_constraint_index(
+            model,
+            info.name,
+            MOI.ConstraintIndex{MOI.ScalarAffineFunction{T},S}(key.value),
+        )
+    end
+    for (key, info) in model.variable_info
+        if !isempty(info.lessthan_name)
+            _set_name_to_constraint_index(
+                model,
+                info.lessthan_name,
+                MOI.ConstraintIndex{MOI.SingleVariable,MOI.LessThan{T}}(
+                    key.value,
+                ),
+            )
+        end
+        if !isempty(info.greaterthan_interval_or_equalto_name)
+            S = if info.bound == _BOUND_GREATER_THAN
+                MOI.GreaterThan{T}
+            elseif info.bound == _BOUND_LESS_AND_GREATER_THAN
+                MOI.GreaterThan{T}
+            elseif info.bound == _BOUND_EQUAL_TO
+                MOI.EqualTo{T}
+            else
+                @assert info.bound == _BOUND_INTERVAL
+                MOI.Interval{T}
+            end
+            _set_name_to_constraint_index(
+                model,
+                info.greaterthan_interval_or_equalto_name,
+                MOI.ConstraintIndex{MOI.SingleVariable,S}(key.value),
+            )
+        end
+    end
+    return
+end
+
+function _set_name_to_constraint_index(
+    model::Optimizer,
+    name::String,
+    index::MOI.ConstraintIndex,
+)
+    if haskey(model.name_to_constraint_index, name)
+        model.name_to_constraint_index[name] = Dict{String,MOI.ConstraintIndex}()
+    else
+        model.name_to_constraint_index[name] = index
+    end
+    return
 end
 
 function _info(

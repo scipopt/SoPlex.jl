@@ -30,16 +30,31 @@ function test_basic_constraint_tests(model)
         name = false)
 end
 
-#TODO: exclude correct functions
-#function test_unittest(model, config)
+#TODO: almost all functions are using unsupported functions
+#function test_unittest(model)
 #    # Test all the functions included in dictionary `MOI.Test.unittests`,
 #    # except functions that are not supported by SoPlex
 #    MOI.Test.unittest(
 #        model,
-#        config,
+#        CONFIG,
 #        String[
 #            # add functions that are not supported by SoPlex
 #            "number_threads",
+#            "solve_zero_one_with_bounds_1",
+#            "solve_singlevariable_obj",
+#            "solve_affine_greaterthan",
+#            "solve_affine_deletion_edge_cases",
+#            "solve_affine_lessthan",
+#            "solve_result_index",
+#            "solve_with_lowerbound",
+#            "delete_nonnegative_variables",
+#            "add_variable",
+#            "solve_constant_obj",
+#            "solve_single_variable_dual_max",
+#            "solve_single_variable_dual_min",
+#            "delete_variable",
+#            "solve_time",
+#            "solve_duplicate_terms_obj",
 #            "solve_qcp_edge_cases"
 #        ],
 #    )
@@ -69,17 +84,16 @@ function test_SolverName(model)
     @test MOI.get(model, MOI.SolverName()) == "SoPlex"
 end
 
-#TODO: add accessing ObjectiveSense in SoPlex
-#function test_default_objective_test(model)
-#    MOI.Test.default_objective_test(model)
-#end
+function test_default_objective_test(model)
+    MOI.Test.default_objective_test(model)
+end
 
-#TODO: add accessing PrimalStatus and DualStatus in SoPlex
-#function test_default_status_test(model)
-#    MOI.Test.default_status_test(model)
-#end
+function test_default_status_test(model)
+    MOI.Test.default_status_test(model)
+end
 
-#TODO: fix right naming
+#TODO: fix right naming -> I think we need to go back to have the dictionary and nothing
+# like in HiGHs
 #function test_nametest(model)
 #    MOI.Test.nametest(model)
 #end

@@ -20,15 +20,12 @@ function MOI.set(
     return
 end
 
-#function MOI.get(model::Optimizer, ::MOI.ObjectiveSense)
-#    if model.is_feasibility
-#        return MOI.FEASIBILITY_SENSE
-#    end
-#    senseP = Ref{Cint}()
-#    ret = Highs_getObjectiveSense(model, senseP)
-#    _check_ret(ret)
-#    return senseP[] == 1 ? MOI.MIN_SENSE : MOI.MAX_SENSE
-#end
+function MOI.get(model::Optimizer, ::MOI.ObjectiveSense)
+    if model.is_feasibility
+        return MOI.FEASIBILITY_SENSE
+    end
+    return SoPlex_getIntParam(model, Cint(0)) == Cint(1) ? MOI.MAX_SENSE : MOI.MIN_SENSE
+end
 
 function MOI.supports(
     ::Optimizer{T},

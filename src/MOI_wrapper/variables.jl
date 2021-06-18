@@ -15,12 +15,12 @@ end
 # =============================================
 
 function MOI.get(model::Optimizer, ::Type{MOI.VariableIndex}, name::String)
-    if model.name_to_variable === nothing
+   if model.name_to_variable == Dict{String,MOI.VariableIndex}()
         _rebuild_name_to_variable(model)
     end
     if haskey(model.name_to_variable, name)
         variable = model.name_to_variable[name]
-        if variable === nothing
+        if variable == Dict{String,MOI.VariableIndex}()
             error("Duplicate name detected: $(name)")
         end
         return variable
@@ -45,13 +45,13 @@ function MOI.set(
 end
 
 function _rebuild_name_to_variable(model::Optimizer)
-    model.name_to_variable = Dict{String,Union{Nothing,MOI.VariableIndex}}()
+    model.name_to_variable = Dict{String,MOI.VariableIndex}()
     for (index, info) in model.variable_info
         if isempty(info.name)
             continue
         end
         if haskey(model.name_to_variable, info.name)
-            model.name_to_variable[info.name] = nothing
+            model.name_to_variable[info.name] = Dict{String,MOI.VariableIndex}()
         else
             model.name_to_variable[info.name] = index
         end
