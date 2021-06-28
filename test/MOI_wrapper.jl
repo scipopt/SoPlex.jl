@@ -119,8 +119,8 @@ end
 
 # This function runs all functions in this module starting with `test_`.
 function runtests()
-   model = SoPlex.Optimizer{Float64}()
-   for name in names(@__MODULE__; all = true)
+    model = SoPlex.Optimizer()
+    for name in names(@__MODULE__; all = true)
         if startswith("$(name)", "test_")
             @testset "$(name)" begin
                 getfield(@__MODULE__, name)(model)
