@@ -253,6 +253,8 @@ mutable struct Optimizer{T, VT, CT} <: MOI.AbstractOptimizer
     end
 end
 
+Optimizer() = Optimizer{Float64}()
+
 Base.cconvert(::Type{Ptr{Cvoid}}, model::Optimizer) = model
 Base.unsafe_convert(::Type{Ptr{Cvoid}}, model::Optimizer) = model.inner
 
