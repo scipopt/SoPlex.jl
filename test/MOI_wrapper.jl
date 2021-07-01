@@ -6,24 +6,24 @@ using Test
 
 const MOI = SoPlex.MOI
 
-const CONFIG = MOI.Test.TestConfig(
-    # Modify tolerances as necessary.
-    atol = 1e-6,
-    rtol = 1e-6,
-    # Set false if dual solutions are not generated
-    duals = false,
-    # Set false if infeasibility certificates are not generated
-    infeas_certificates = false,
-    # Use MOI.LOCALLY_SOLVED for local solvers.
-    optimal_status = MOI.OPTIMAL,
-    # Set true if basis information is available
-    basis = false,
-)
+#const CONFIG = MOI.Test.TestConfig(
+#    # Modify tolerances as necessary.
+#    atol = 1e-6,
+#    rtol = 1e-6,
+#    # Set false if dual solutions are not generated
+#    duals = false,
+#    # Set false if infeasibility certificates are not generated
+#    infeas_certificates = false,
+#    # Use MOI.LOCALLY_SOLVED for local solvers.
+#    optimal_status = MOI.OPTIMAL,
+#    # Set true if basis information is available
+#    basis = false,
+#)
 
-function test_basic_constraint_tests(model)
+function test_basic_constraint_tests(model, config)
     MOI.Test.basic_constraint_tests(
         model,
-        CONFIG,
+        config,
         delete = false,
         get_constraint_function = false,
         get_constraint_set = false,
@@ -80,15 +80,15 @@ end
 #    MOI.Test.intconictest(model, CONFIG)
 #end
 
-function test_SolverName(model)
+function test_SolverName(model, ::Any)
     @test MOI.get(model, MOI.SolverName()) == "SoPlex"
 end
 
-function test_default_objective_test(model)
+function test_default_objective_test(model, ::Any)
     MOI.Test.default_objective_test(model)
 end
 
-function test_default_status_test(model)
+function test_default_status_test(model, ::Any)
     MOI.Test.default_status_test(model)
 end
 
@@ -113,17 +113,35 @@ end
 #    MOI.Test.orderedindicestest(model)
 #end
 
-function test_scalar_function_constant_not_zero(model)
+function test_scalar_function_constant_not_zero(model, ::Any)
     MOI.Test.scalar_function_constant_not_zero(model)
 end
 
 # This function runs all functions in this module starting with `test_`.
 function runtests()
     model = SoPlex.Optimizer()
-    for name in names(@__MODULE__; all = true)
-        if startswith("$(name)", "test_")
-            @testset "$(name)" begin
-                getfield(@__MODULE__, name)(model)
+    config = Dict(
+        "simplex" => MOI.Test.TestConfig(basis = true),
+        "CONFIG" => MOI.Test.TestConfig(
+            # Modify tolerances as necessary.
+            atol = 1e-6,
+            rtol = 1e-6,
+            # Set false if dual solutions are not generated
+            duals = false,
+            # Set false if infeasibility certificates are not generated
+            infeas_certificates = false,
+            # Use MOI.LOCALLY_SOLVED for local solvers.
+            optimal_status = MOI.OPTIMAL,
+            # Set true if basis information is available
+            basis = false,
+            ),
+    )
+    @testset "$(solver)" for solver in ["simplex", "CONFIG"]
+        for name in names(@__MODULE__; all = true)
+            if startswith("$(name)", "test_")
+                @testset "$(name)" begin
+                    getfield(@__MODULE__, name)(model, config[solver])
+                end
             end
         end
     end
