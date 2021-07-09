@@ -11,4 +11,5 @@ end
 # add tests for MOI wrapper
 include("MOI_wrapper.jl")
 
+# add tests for SoPlex
 include("SoPlex.jl")

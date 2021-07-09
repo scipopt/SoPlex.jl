@@ -15,7 +15,7 @@ end
 function test_real()
    # create LP via columns 
 
-   soplex = SoPlex_create()
+   soplex = SoPlex.SoPlex_create()
    infty = 10e+20
    colentries1 = [-1.0]
    colentries2 = [1.0]
@@ -23,56 +23,56 @@ function test_real()
    primal = [0.0,0.0]
 
    # minimize 
-   SoPlex_setIntParam(soplex, 0, -1)
+   SoPlex.SoPlex_setIntParam(soplex, 0, -1)
 
    # add columns 
-   SoPlex_addColReal(soplex, colentries1, 1, 1, 1.0, 0.0, infty)
-   SoPlex_addColReal(soplex, colentries2, 1, 1, 1.0, -infty, infty)
-   assert(SoPlex_numRows(soplex) == 1)
-   assert(SoPlex_numCols(soplex) == 2)
+   SoPlex.SoPlex_addColReal(soplex, colentries1, 1, 1, 1.0, 0.0, infty)
+   SoPlex.SoPlex_addColReal(soplex, colentries2, 1, 1, 1.0, -infty, infty)
+   @assert(SoPlex.SoPlex_numRows(soplex) == 1)
+   @assert(SoPlex.SoPlex_numCols(soplex) == 2)
 
    # set lhs of constra
-   SoPlex_changeLhsReal(soplex, lhs, 1)
+   SoPlex.SoPlex_changeLhsReal(soplex, lhs, 1)
 
    # optimize and get solution and objective value 
-   result = SoPlex_optimize(soplex)
-   assert(result == 1)
-   SoPlex_getPrimalReal(soplex, primal, 2)
-   assert(primal[0] == 0.0 && primal[1] == -10.0)
-   assert(SoPlex_objValueReal(soplex) == -10.0)
+   result = SoPlex.SoPlex_optimize(soplex)
+   @assert(result == 1)
+   SoPlex.SoPlex_getPrimalReal(soplex, primal, 2)
+   @assert(primal[0] == 0.0 && primal[1] == -10.0)
+   @assert(SoPlex.SoPlex_objValueReal(soplex) == -10.0)
 
-	SoPlex_free(soplex)
+   SoPlex.SoPlex_free(soplex)
 
    # create LP via rows 
 
-   soplex2 = SoPlex_create()
+   soplex2 = SoPlex.SoPlex_create()
    rowentries1 = [-1.0, 1.0]
    lb = [0.0, -infty]
    ub = [infty, infty]
    obj = [1.0, 1.0]
 
    # minimize 
-   SoPlex_setIntParam(soplex2, 0, -1)
+   SoPlex.SoPlex_setIntParam(soplex2, 0, -1)
 
    # add row 
-   SoPlex_addRowReal(soplex2, rowentries1, 2, 2, -10.0, infty)
+   SoPlex.SoPlex_addRowReal(soplex2, rowentries1, 2, 2, -10.0, infty)
 
    # add variable bounds 
-   SoPlex_changeBoundsReal(soplex2, lb, ub, 2)
-   assert(SoPlex_numRows(soplex2) == 1)
-   assert(SoPlex_numCols(soplex2) == 2)
+   SoPlex.SoPlex_changeBoundsReal(soplex2, lb, ub, 2)
+   @assert(SoPlex.SoPlex_numRows(soplex2) == 1)
+   @assert(SoPlex.SoPlex_numCols(soplex2) == 2)
 
    # add objective 
-   SoPlex_changeObjReal(soplex2, obj, 2)
+   SoPlex.SoPlex_changeObjReal(soplex2, obj, 2)
 
    # optimize and get solution and objective value 
-   result = SoPlex_optimize(soplex2)
-   assert(result == 1)
-   SoPlex_getPrimalReal(soplex2, primal, 2)
-   assert(primal[0] == 0.0 && primal[1] == -10.0)
-   assert(SoPlex_objValueReal(soplex2) == -10.0)
+   result = SoPlex.SoPlex_optimize(soplex2)
+   @assert(result == 1)
+   SoPlex.SoPlex_getPrimalReal(soplex2, primal, 2)
+   @assert(primal[0] == 0.0 && primal[1] == -10.0)
+   @assert(SoPlex.SoPlex_objValueReal(soplex2) == -10.0)
 
-	SoPlex_free(soplex2)
+   SoPlex.SoPlex_free(soplex2)
 end
 
 if @isdefined(SOPLEX_WITH_GMP)
@@ -99,9 +99,9 @@ if @isdefined(SOPLEX_WITH_GMP)
 
       # optimize and check rational solution and objective value 
       result = SoPlex_optimize(soplex)
-      assert(result == 1)
-      assert(strcmp(SoPlex_getPrimalRationalString(soplex, 2), "0 1/5 ") == 0)
-      assert(strcmp(SoPlex_objValueRationalString(soplex), "1/5") == 0)
+      @assert(result == 1)
+      @assert(strcmp(SoPlex_getPrimalRationalString(soplex, 2), "0 1/5 ") == 0)
+      @assert(strcmp(SoPlex_objValueRationalString(soplex), "1/5") == 0)
 
       SoPlex_free(soplex)
 
@@ -129,21 +129,23 @@ if @isdefined(SOPLEX_WITH_GMP)
 
       # optimize and check rational solution and objective value 
       result = SoPlex_optimize(soplex2)
-      assert(result == 1)
-      assert(strcmp(SoPlex_getPrimalRationalString(soplex2, 2), "0 -1/5 ") == 0)
-      assert(strcmp(SoPlex_objValueRationalString(soplex2), "-1/25") == 0)
+      @assert(result == 1)
+      @assert(strcmp(SoPlex_getPrimalRationalString(soplex2, 2), "0 -1/5 ") == 0)
+      @assert(strcmp(SoPlex_objValueRationalString(soplex2), "-1/25") == 0)
 
       SoPlex_free(soplex2)
    end
 end
 
 function main()
-   printf("testing real... \n")
+   print("testing real... \n")
    test_real()
 
    if @isdefined(SOPLEX_WITH_GMP)
-      printf("\n")
-      printf("testing rational... \n")
+      print("\n")
+      print("testing rational... \n")
       test_rational()
    end
 end
+
+main()
