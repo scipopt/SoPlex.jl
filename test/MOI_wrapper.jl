@@ -6,19 +6,6 @@ using Test
 
 const MOI = SoPlex.MOI
 
-#const CONFIG = MOI.Test.TestConfig(
-#    # Modify tolerances as necessary.
-#    atol = 1e-6,
-#    rtol = 1e-6,
-#    # Set false if dual solutions are not generated
-#    duals = false,
-#    # Set false if infeasibility certificates are not generated
-#    infeas_certificates = false,
-#    # Use MOI.LOCALLY_SOLVED for local solvers.
-#    optimal_status = MOI.OPTIMAL,
-#    # Set true if basis information is available
-#    basis = false,
-#)
 
 function test_basic_constraint_tests(model, config)
     MOI.Test.basic_constraint_tests(
