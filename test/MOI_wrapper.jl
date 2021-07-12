@@ -48,24 +48,36 @@ end
 #end
 
 #TODO: there is some invalid variable name x somewhere
-#function test_modification(model)
-#    MOI.Test.modificationtest(model, CONFIG)
-#end
+function test_modification(model, config)
+    MOI.Test.modificationtest(model, config)
+end
 
-#TODO: add MOIU.supports_default_copy_to
-#function test_contlinear(model)
-#    MOI.Test.contlineartest(model, CONFIG)
-#end
+#TODO: add MOIU.supports_default_copy_to for the following six tests
+function test_contlinear(model, config)
+    MOI.Test.contlineartest(model, config)
+end
 
-#TODO: add MOIU.supports_default_copy_to
-#function test_contconic(model)
-#    MOI.Test.contlineartest(model, CONFIG)
-#end
+function test_contconic(model, config)
+    MOI.Test.contlineartest(model, config)
+end
 
-#TODO: MOIU.supports_default_copy_to
-#function test_intconic(model)
-#    MOI.Test.intconictest(model, CONFIG)
-#end
+function test_intconic(model, config)
+    MOI.Test.intconictest(model, config)
+end
+
+function test_validtest(model, ::Any)
+    MOI.Test.validtest(model)
+end
+
+function test_emptytest(model, ::Any)
+    MOI.Test.emptytest(model)
+end
+
+function test_orderedindicestest(model, ::Any)
+    MOI.Test.orderedindicestest(model)
+end
+#end of list of tests requiring MOIU.supports_default_copy_to
+
 
 function test_SolverName(model, ::Any)
     @test MOI.get(model, MOI.SolverName()) == "SoPlex"
@@ -81,24 +93,9 @@ end
 
 #TODO: fix right naming -> I think we need to go back to have the dictionary and nothing
 # like in HiGHs
-#function test_nametest(model)
-#    MOI.Test.nametest(model)
-#end
-
-#TODO: MOIU.supports_default_copy_to
-#function test_validtest(model)
-#    MOI.Test.validtest(model)
-#end
-
-#TODO: MOIU.supports_default_copy_to
-#function test_emptytest(model)
-#    MOI.Test.emptytest(model)
-#end
-
-#TODO: MOIU.supports_default_copy_to
-#function test_orderedindicestest(model)
-#    MOI.Test.orderedindicestest(model)
-#end
+function test_nametest(model, ::Any)
+    MOI.Test.nametest(model)
+end
 
 function test_scalar_function_constant_not_zero(model, ::Any)
     MOI.Test.scalar_function_constant_not_zero(model)
@@ -126,8 +123,10 @@ function runtests()
     @testset "$(solver)" for solver in ["simplex", "CONFIG"]
         for name in names(@__MODULE__; all = true)
             if startswith("$(name)", "test_")
-                @testset "$(name)" begin
-                    getfield(@__MODULE__, name)(model, config[solver])
+                if !("$(name)" in ["test_modification", "test_contlinear", "test_contconic", "test_intconic", "test_validtest", "test_emptytest", "test_orderedindicestest", "test_nametest"])
+                    @testset "$(name)" begin
+                        getfield(@__MODULE__, name)(model, config[solver])
+                    end
                 end
             end
         end
