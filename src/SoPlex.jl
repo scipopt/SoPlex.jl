@@ -10,5 +10,6 @@ end
 include("commons.jl")
 include("ctypes.jl")
 include("soplex_interface.jl")
+include("MOI_wrapper/MOI_wrapper.jl")
 
 end # module
