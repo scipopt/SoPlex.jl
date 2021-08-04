@@ -1,3 +1,8 @@
+import SoPlex
+using Test
+
+const MOI = SoPlex.MOI
+
 # ============================ /test/MOI_wrapper.jl ============================
 module TestMOISoPlex
 
@@ -7,6 +12,7 @@ using Test
 const MOI = SoPlex.MOI
 const MOIU = MOI.Utilities
 
+<<<<<<< HEAD
 MOIU.@model(ModelData,
             (),
             (MOI.EqualTo, MOI.GreaterThan, MOI.LessThan, MOI.Interval),
@@ -20,6 +26,8 @@ MOIU.@model(ModelData,
 const CACHE = MOIU.UniversalFallback(ModelData{Float64}())
 const CACHED = MOIU.CachingOptimizer(CACHE, SoPlex.Optimizer())
 
+=======
+>>>>>>> origin/master
 function test_basic_constraint_tests(model, config)
     MOI.Test.basic_constraint_tests(
         model,
@@ -148,5 +156,10 @@ function runtests()
 end
 
 end # module TestMOISoPlex
+
+@testset "Empty initialized" begin
+    o = SoPlex.Optimizer()
+    @test MOI.is_empty(o)
+end
 
 TestMOISoPlex.runtests()

@@ -1,7 +1,6 @@
 import MathOptInterface
 const MOI = MathOptInterface
-const MOIU = MOI.Utilities
-const CleverDicts = MOIU.CleverDicts
+const CleverDicts = MOI.Utilities.CleverDicts
 const inf = 2^31 - 1
 const FloatOrRational = Union{Float64, Rational{Int32}}
 
@@ -279,9 +278,9 @@ function MOI.is_empty(model::Optimizer)
            model.is_feasibility &&
            isempty(model.variable_info) &&
            isempty(model.affine_constraint_info) &&
-           model.name_to_variable === Dict{String,MOI.VariableIndex}() &&
-           model.name_to_constraint_index === Dict{String,MOI.ConstraintIndex}() &&
-           model.solution_value == 0.0 &&
+           isempty(model.name_to_variable) &&
+           isempty(model.name_to_constraint_index) &&
+           iszero(model.solution_value) &&
            model.status == -3
 end
 
@@ -579,7 +578,7 @@ function _check_input_data(dest::Optimizer, src::MOI.ModelLike)
     return
 end
 
-MOIU.supports_default_copy_to(model::Optimizer, copy_names::Bool) = !copy_names
+MOI.Utilities.supports_default_copy_to(::Optimizer, ::Bool) = false
 
 function MOI.copy_to(
     dest::Optimizer{T},
@@ -588,7 +587,7 @@ function MOI.copy_to(
     kwargs...,
 )  where {T <: FloatOrRational}
     if copy_names
-        return MOIU.automatic_copy_to(
+        return MOI.Utilities.automatic_copy_to(
             dest,
             src;
             copy_names = true,
@@ -597,7 +596,7 @@ function MOI.copy_to(
     end
     @assert MOI.is_empty(dest)
     _check_input_data(dest, src)
-    mapping = MOIU.IndexMap()
+    mapping = MOI.Utilities.IndexMap()
     numcol, colcost = _copy_to_columns(dest{T}, src, mapping)
     collower, colupper = fill(T(-Inf), numcol), fill(T(Inf), numcol)
     rowlower, rowupper = T[], T[]
