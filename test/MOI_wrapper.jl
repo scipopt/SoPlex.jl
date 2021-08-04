@@ -5,7 +5,20 @@ import SoPlex
 using Test
 
 const MOI = SoPlex.MOI
+const MOIU = MOI.Utilities
 
+MOIU.@model(ModelData,
+            (),
+            (MOI.EqualTo, MOI.GreaterThan, MOI.LessThan, MOI.Interval),
+            (MOI.SecondOrderCone,),
+            (),
+            (),
+            (MOI.ScalarAffineFunction,),
+            (MOI.VectorOfVariables,),
+            (MOI.VectorAffineFunction,))
+
+const CACHE = MOIU.UniversalFallback(ModelData{Float64}())
+const CACHED = MOIU.CachingOptimizer(CACHE, SoPlex.Optimizer())
 
 function test_basic_constraint_tests(model, config)
     MOI.Test.basic_constraint_tests(
@@ -52,7 +65,7 @@ function test_modification(model, config)
     MOI.Test.modificationtest(model, config)
 end
 
-#TODO: add MOIU.supports_default_copy_to for the following six tests
+#TODO: make sure all constraints are supported as intended
 function test_contlinear(model, config)
     MOI.Test.contlineartest(model, config)
 end
@@ -65,18 +78,19 @@ function test_intconic(model, config)
     MOI.Test.intconictest(model, config)
 end
 
-function test_validtest(model, ::Any)
-    MOI.Test.validtest(model)
-end
-
 function test_emptytest(model, ::Any)
     MOI.Test.emptytest(model)
+end
+
+
+#TODO: Implement a CACHING_OPTIMIZER
+function test_validtest(model, ::Any)
+    MOI.Test.validtest(model)
 end
 
 function test_orderedindicestest(model, ::Any)
     MOI.Test.orderedindicestest(model)
 end
-#end of list of tests requiring MOIU.supports_default_copy_to
 
 
 function test_SolverName(model, ::Any)
