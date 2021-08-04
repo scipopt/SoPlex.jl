@@ -1,3 +1,8 @@
+import SoPlex
+using Test
+
+const MOI = SoPlex.MOI
+
 # ============================ /test/MOI_wrapper.jl ============================
 module TestMOISoPlex
 
@@ -5,7 +10,6 @@ import SoPlex
 using Test
 
 const MOI = SoPlex.MOI
-
 
 function test_basic_constraint_tests(model, config)
     MOI.Test.basic_constraint_tests(
