@@ -11,8 +11,8 @@ using Test
 
 const MOI = SoPlex.MOI
 const MOIU = MOI.Utilities
+const MOIB = MOI.Bridges
 
-<<<<<<< HEAD
 MOIU.@model(ModelData,
             (),
             (MOI.EqualTo, MOI.GreaterThan, MOI.LessThan, MOI.Interval),
@@ -25,9 +25,8 @@ MOIU.@model(ModelData,
 
 const CACHE = MOIU.UniversalFallback(ModelData{Float64}())
 const CACHED = MOIU.CachingOptimizer(CACHE, SoPlex.Optimizer())
+const BRIDGED2 = MOIB.full_bridge_optimizer(CACHED, Float64)
 
-=======
->>>>>>> origin/master
 function test_basic_constraint_tests(model, config)
     MOI.Test.basic_constraint_tests(
         model,
@@ -148,6 +147,11 @@ function runtests()
                 if !("$(name)" in ["test_modification", "test_contlinear", "test_contconic", "test_intconic", "test_validtest", "test_emptytest", "test_orderedindicestest", "test_nametest"])
                     @testset "$(name)" begin
                         getfield(@__MODULE__, name)(model, config[solver])
+                    end
+                end
+                if ("$(name)" in ["test_validtest", "test_orderedindicestest"])
+                    @testset "$(name)" begin
+                        getfield(@__MODULE__, name)(BRIDGED2, config[solver])
                     end
                 end
             end
