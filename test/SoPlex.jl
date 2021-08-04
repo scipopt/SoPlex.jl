@@ -64,77 +64,73 @@ function test_real()
    SoPlex.SoPlex_free(soplex2)
 end
 
-if @isdefined(SOPLEX_WITH_GMP)
-   function test_rational()
-      # create LP via rows 
+function test_rational()
+   # create LP via rows 
 
-      soplex = SoPlex_create()
-      infty = 1000000
-      rownums = [-1, 1]
-      rowdenoms = [1, 1]
-      objnums = [1, 1]
-      objdenoms = [1, 1]
-      primal = [0.0,0.0]
+   soplex = SoPlex_create()
+   infty = 1000000
+   rownums = [-1, 1]
+   rowdenoms = [1, 1]
+   objnums = [1, 1]
+   objdenoms = [1, 1]
+   primal = [0.0,0.0]
 
-      # use rational solver 
-      SoPlex_setRational(soplex)
+   # use rational solver 
+   SoPlex_setRational(soplex)
 
-      # minimize 
-      SoPlex_setIntParam(soplex, 0, -1)
+   # minimize 
+   SoPlex_setIntParam(soplex, 0, -1)
 
-      # add row and set objective function 
-      SoPlex_addRowRational(soplex, rownums, rowdenoms, 2, 2, 1, 5, infty, 1)
-      SoPlex_changeObjRational(soplex, objnums, objdenoms, 2)
+   # add row and set objective function 
+   SoPlex_addRowRational(soplex, rownums, rowdenoms, 2, 2, 1, 5, infty, 1)
+   SoPlex_changeObjRational(soplex, objnums, objdenoms, 2)
 
-      # optimize and check rational solution and objective value 
-      result = SoPlex_optimize(soplex)
-      @assert(result == 1)
-      @assert(strcmp(SoPlex_getPrimalRationalString(soplex, 2), "0 1/5 ") == 0)
-      @assert(strcmp(SoPlex_objValueRationalString(soplex), "1/5") == 0)
+   # optimize and check rational solution and objective value 
+   result = SoPlex_optimize(soplex)
+   @assert(result == 1)
+   @assert(strcmp(SoPlex_getPrimalRationalString(soplex, 2), "0 1/5 ") == 0)
+   @assert(strcmp(SoPlex_objValueRationalString(soplex), "1/5") == 0)
 
-      SoPlex_free(soplex)
+   SoPlex_free(soplex)
 
-      # create LP via columns 
-      soplex2 = SoPlex_create()
-      colnums1 = [-1]
-      coldenoms1 = [1]
-      colnums2 = [1]
-      coldenoms2 = [1]
-      lhsnums = [-1]
-      lhsdenoms = [5]
+   # create LP via columns 
+   soplex2 = SoPlex_create()
+   colnums1 = [-1]
+   coldenoms1 = [1]
+   colnums2 = [1]
+   coldenoms2 = [1]
+   lhsnums = [-1]
+   lhsdenoms = [5]
 
-      # use rational solver 
-      SoPlex_setRational(soplex2)
+   # use rational solver 
+   SoPlex_setRational(soplex2)
 
-      # minimize 
-      SoPlex_setIntParam(soplex2, 0, -1)
+   # minimize 
+   SoPlex_setIntParam(soplex2, 0, -1)
 
-      # add cols 
-      SoPlex_addColRational(soplex2, colnums1, coldenoms1, 1, 1, 1, 5, 0, 1, infty, 1)
-      SoPlex_addColRational(soplex2, colnums2, coldenoms2, 1, 1, 1, 5, -infty, 1, infty, 1)
+   # add cols 
+   SoPlex_addColRational(soplex2, colnums1, coldenoms1, 1, 1, 1, 5, 0, 1, infty, 1)
+   SoPlex_addColRational(soplex2, colnums2, coldenoms2, 1, 1, 1, 5, -infty, 1, infty, 1)
 
-      # add bounds to constra
-      SoPlex_changeLhsRational(soplex2, lhsnums, lhsdenoms, 1)
+   # add bounds to constra
+   SoPlex_changeLhsRational(soplex2, lhsnums, lhsdenoms, 1)
 
-      # optimize and check rational solution and objective value 
-      result = SoPlex_optimize(soplex2)
-      @assert(result == 1)
-      @assert(strcmp(SoPlex_getPrimalRationalString(soplex2, 2), "0 -1/5 ") == 0)
-      @assert(strcmp(SoPlex_objValueRationalString(soplex2), "-1/25") == 0)
+   # optimize and check rational solution and objective value 
+   result = SoPlex_optimize(soplex2)
+   @assert(result == 1)
+   @assert(strcmp(SoPlex_getPrimalRationalString(soplex2, 2), "0 -1/5 ") == 0)
+   @assert(strcmp(SoPlex_objValueRationalString(soplex2), "-1/25") == 0)
 
-      SoPlex_free(soplex2)
-   end
+   SoPlex_free(soplex2)
 end
 
-function main()
-   print("testing real... \n")
-   test_real()
-
+@testset "SoPlex API tests" begin
+   @testset "Soplex floating mode" begin
+      test_real()
+   end
    if @isdefined(SOPLEX_WITH_GMP)
-      print("\n")
-      print("testing rational... \n")
-      test_rational()
+      @testset "SoPlex rational mode" begin
+         test_rational()
+      end
    end
 end
-
-main()

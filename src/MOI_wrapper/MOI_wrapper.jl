@@ -278,9 +278,9 @@ function MOI.is_empty(model::Optimizer)
            model.is_feasibility &&
            isempty(model.variable_info) &&
            isempty(model.affine_constraint_info) &&
-           model.name_to_variable === Dict{String,MOI.VariableIndex}() &&
-           model.name_to_constraint_index === Dict{String,MOI.ConstraintIndex}() &&
-           model.solution_value == 0.0 &&
+           isempty(model.name_to_variable) &&
+           isempty(model.name_to_constraint_index) &&
+           iszero(model.solution_value) &&
            model.status == -3
 end
 
