@@ -135,4 +135,9 @@ end
 
 end # module TestMOISoPlex
 
+@testset "Empty initialized" begin
+    o = SoPlex.Optimizer()
+    @test MOI.is_empty(o)
+end
+
 TestMOISoPlex.runtests()
