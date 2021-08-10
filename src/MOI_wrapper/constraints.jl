@@ -24,7 +24,7 @@ end
 function MOI.supports_constraint(
     ::Optimizer{T},
     ::Type{MOI.SingleVariable},
-    ::Type{_SCALAR_SETS{T}},
+    ::Type{<:_SCALAR_SETS{T}},
 ) where { T <: FloatOrRational}
     return true
 end

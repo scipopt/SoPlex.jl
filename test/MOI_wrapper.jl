@@ -90,7 +90,7 @@ function test_emptytest(model, ::Any)
 end
 
 
-#TODO: Implement a CACHING_OPTIMIZER
+#these two need a CACHING_OPTIMIZER
 function test_validtest(model, ::Any)
     MOI.Test.validtest(model)
 end
@@ -144,11 +144,13 @@ function runtests()
     @testset "$(solver)" for solver in ["simplex", "CONFIG"]
         for name in names(@__MODULE__; all = true)
             if startswith("$(name)", "test_")
-                if !("$(name)" in ["test_modification", "test_contlinear", "test_contconic", "test_intconic", "test_validtest", "test_emptytest", "test_orderedindicestest", "test_nametest"])
+                # exclude tests that are not yet passing or that are to be called in a different fashion
+                if !("$(name)" in ["test_modification", "test_contconic", "test_intconic", "test_validtest", "test_emptytest", "test_orderedindicestest", "test_nametest"])
                     @testset "$(name)" begin
                         getfield(@__MODULE__, name)(model, config[solver])
                     end
                 end
+                # Tests that need a Caching Optimizer are called here
                 if ("$(name)" in ["test_validtest", "test_orderedindicestest"])
                     @testset "$(name)" begin
                         getfield(@__MODULE__, name)(BRIDGED2, config[solver])
