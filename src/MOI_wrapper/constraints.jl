@@ -29,6 +29,14 @@ function MOI.supports_constraint(
     return true
 end
 
+function MOI.supports_constraint(
+    ::Optimizer{T},
+    ::Type{MOI.VectorOfVariables},
+    ::Type{<:MOI.Nonnegatives},
+) where { T <: FloatOrRational}
+    return true
+end
+
 # Linear constraints
 function MOI.supports_constraint(
     ::Optimizer,
@@ -143,6 +151,7 @@ end
 
 function MOI.get(
     model::Optimizer,
+    ::MOI.ConstraintName,
     ::MOI.ListOfConstraintIndices{MOI.SingleVariable,S},
 ) where { T <: FloatOrRational, S<:_SCALAR_SETS{T}}
     indices = MOI.ConstraintIndex{MOI.SingleVariable,S}[
