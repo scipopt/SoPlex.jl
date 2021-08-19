@@ -285,7 +285,7 @@ function MOI.get(
     model::Optimizer,
     ::MOI.ListOfConstraintIndices{MOI.ScalarAffineFunction{Float64},S},
 ) where {S<:_SCALAR_SETS}
-    indices = MOI.ConstraintIndex{MOI.ScalarAffineFunction{Float64},S}[
+    indices = [
         MOI.ConstraintIndex{MOI.ScalarAffineFunction{Float64},S}(key.value)
         for (key, info) in model.affine_constraint_info if _set(info) isa S
     ]
