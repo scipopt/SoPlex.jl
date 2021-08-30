@@ -29,14 +29,6 @@ function MOI.supports_constraint(
     return true
 end
 
-function MOI.supports_constraint(
-    ::Optimizer{T},
-    ::Type{MOI.VectorOfVariables},
-    ::Type{<:MOI.Nonnegatives},
-) where { T <: FloatOrRational}
-    return true
-end
-
 # Linear constraints
 function MOI.supports_constraint(
     ::Optimizer,
