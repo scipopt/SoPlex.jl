@@ -308,6 +308,17 @@ end
 
 function MOI.get(
     model::Optimizer,
+    ::MOI.ListOfConstraintIndices{MOI.SingleVariable,S},
+) where {S<:_SCALAR_SETS}
+    indices = MOI.ConstraintIndex{MOI.SingleVariable,S}[
+        MOI.ConstraintIndex{MOI.SingleVariable,S}(key.value) for
+        (key, info) in model.variable_info if info.bound in _bound_enums(S)
+    ]
+    return sort!(indices, by = x -> x.value)
+end
+
+function MOI.get(
+    model::Optimizer,
     ::MOI.ListOfConstraintIndices{MOI.SingleVariable,MOI.ZeroOne},
 )
     indices = MOI.ConstraintIndex{MOI.SingleVariable,MOI.ZeroOne}[
