@@ -277,7 +277,7 @@ function MOI.get(
     model::Optimizer,
     ::MOI.ListOfConstraintIndices{MOI.ScalarAffineFunction{Float64},S},
 ) where {S<:_SCALAR_SETS}
-    indices = [
+    indices = MOI.ConstraintIndex{MOI.ScalarAffineFunction{Float64},S}[
         MOI.ConstraintIndex{MOI.ScalarAffineFunction{Float64},S}(key.value)
         for (key, info) in model.affine_constraint_info if _set(info) isa S
     ]
@@ -293,6 +293,28 @@ function MOI.get(
         for (key, info) in model.affine_constraint_info if _set(info) isa S
     ]
     return sort!(indices; by = x -> x.value)
+end
+
+function MOI.get(
+    model::Optimizer,
+    ::MOI.ListOfConstraintIndices{MOI.SingleVariable,MOI.Integer},
+)
+    indices = MOI.ConstraintIndex{MOI.SingleVariable,MOI.Integer}[
+        MOI.ConstraintIndex{MOI.SingleVariable,MOI.Integer}(key.value) for
+        (key, info) in model.variable_info if info.type == _TYPE_INTEGER
+    ]
+    return sort!(indices, by = x -> x.value)
+end
+
+function MOI.get(
+    model::Optimizer,
+    ::MOI.ListOfConstraintIndices{MOI.SingleVariable,MOI.ZeroOne},
+)
+    indices = MOI.ConstraintIndex{MOI.SingleVariable,MOI.ZeroOne}[
+        MOI.ConstraintIndex{MOI.SingleVariable,MOI.ZeroOne}(key.value) for
+        (key, info) in model.variable_info if info.type == _TYPE_BINARY
+    ]
+    return sort!(indices, by = x -> x.value)
 end
 
 function _info(
