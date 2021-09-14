@@ -288,10 +288,10 @@ end
 MOI.get(::Optimizer, ::MOI.SolverName) = "SoPlex"
 MOI.get(model::Optimizer, ::MOI.RawSolver) = model
 
-function MOI.get(model::Optimizer{T}, ::MOI.ListOfModelAttributesSet) where {T <: FloatOrRational}
+function MOI.get(model::Optimizer, ::MOI.ListOfModelAttributesSet)
     attributes = [
         MOI.ObjectiveSense(),
-        MOI.ObjectiveFunction{MOI.ScalarAffineFunction{T}}(),
+        MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}(),
     ]
     if MOI.get(model, MOI.Name()) != ""
         push!(attributes, MOI.Name())
@@ -309,6 +309,8 @@ end
 
 
 MOI.supports(::Optimizer, ::MOI.Name) = true
+
+MOI.supports(::Optimizer, ::MOI.ObjectiveSense) = true
 
 MOI.get(model::Optimizer, ::MOI.Name) = model.name
 
