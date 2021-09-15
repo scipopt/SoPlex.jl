@@ -581,7 +581,7 @@ function _check_input_data(dest::Optimizer, src::MOI.ModelLike)
     return
 end
 
-MOIU.supports_default_copy_to(model::Optimizer, copy_names::Bool) = !copy_names
+MOIU.supports_default_copy_to(::Optimizer, copy_names::Bool) = !copy_names
 
 function MOI.copy_to(
     dest::Optimizer{T},
