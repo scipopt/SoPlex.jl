@@ -74,6 +74,7 @@ end
 
 #TODO: make sure all constraints are supported as intended
 function test_contlinear(model, config)
+    model = MOI.Bridges.full_bridge_optimizer(model, Float64)
     MOI.Test.contlineartest(model, config)
 end
 
