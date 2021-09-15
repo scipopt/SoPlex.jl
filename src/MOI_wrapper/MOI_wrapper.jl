@@ -439,6 +439,20 @@ function MOI.get(model::Optimizer, attr::MOI.DualStatus)
     return MOI.NO_SOLUTION
 end
 
+function MOI.get(
+    model::Optimizer,
+    ::MOI.ConstraintFunction,
+    c::MOI.ConstraintIndex{MOI.SingleVariable,<:Any},
+)
+    MOI.throw_if_not_valid(model, c)
+    return MOI.SingleVariable(MOI.VariableIndex(c.value))
+end
+
+function MOI.get(model::Optimizer, attr::MOI.ObjectiveValue)
+    MOI.check_result_index_bounds(model, attr)
+    return SoPlex_objValueReal(model)
+end
+
 ###
 ### MOI.copy_to
 ###
