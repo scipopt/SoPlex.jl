@@ -454,7 +454,7 @@ function MOI.get(
     c::MOI.ConstraintIndex{MOI.ScalarAffineFunction{Float64}},
 )
     MOI.throw_if_not_valid(model, c)
-    return MOI.ScalarAffineFunction(MOI.VariableIndex(c.value))
+    return MOI.ScalarAffineFunction{Float64}(MOI.SingleVariable(MOI.VariableIndex(c.value)))
 end
 
 function MOI.get(model::Optimizer, attr::MOI.ObjectiveValue)
