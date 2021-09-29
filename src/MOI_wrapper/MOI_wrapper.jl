@@ -606,57 +606,8 @@ end
 
 MOIU.supports_default_copy_to(::Optimizer, copy_names::Bool) = !copy_names
 
-function MOI.copy_to(
-    dest::Optimizer{T},
-    src::MOI.ModelLike;
-    copy_names::Bool = false,
-    kwargs...,
-)  where {T <: FloatOrRational}
-    if copy_names
-        return MOIU.automatic_copy_to(
-            dest,
-            src;
-            copy_names = true,
-            kwargs...,
-        )
-    end
-    @assert MOI.is_empty(dest)
-    _check_input_data(dest, src)
-    mapping = MOIU.IndexMap()
-    numcol, colcost = _copy_to_columns(dest{T}, src, mapping)
-    collower, colupper = fill(T(-Inf), numcol), fill(T(Inf), numcol)
-    rowlower, rowupper = T[], T[]
-    I, J, V = Cint[], Cint[], T[]
-    for S in (
-        MOI.GreaterThan{T},
-        MOI.LessThan{T},
-        MOI.EqualTo{T},
-        MOI.Interval{T},
-    )
-        _extract_bound_data(dest, src, mapping, collower, colupper, S)
-        _extract_row_data(dest, src, mapping, rowlower, rowupper, I, J, V, S)
-    end
-    numrow = Cint(length(rowlower))
-    A = SparseArrays.sparse(I, J, V, numrow, numcol)
-    Highs_passLp(
-        dest,
-        numcol,
-        numrow,
-        length(V),
-        0,  # The A matrix is given is column-wise.
-        MOI.get(src, MOI.ObjectiveSense()) == MOI.MAX_SENSE ? Cint(-1) :
-        Cint(1),
-        dest.objective_constant,
-        colcost,
-        collower,
-        colupper,
-        rowlower,
-        rowupper,
-        A.colptr .- Cint(1),
-        A.rowval .- Cint(1),
-        A.nzval,
-    )
-    return mapping
+function MOI.copy_to(dest::Optimizer, src::MOI.ModelLike; kws...)
+    return MOIU.automatic_copy_to(dest, src; kws...)
 end
 
 # ==============================================================================
