@@ -275,10 +275,10 @@ end
 
 function MOI.get(
     model::Optimizer,
-    ::MOI.ListOfConstraintIndices{MOI.ScalarAffineFunction{Float64},S},
-) where {S<:_SCALAR_SETS}
-    indices = MOI.ConstraintIndex{MOI.ScalarAffineFunction{Float64},S}[
-        MOI.ConstraintIndex{MOI.ScalarAffineFunction{Float64},S}(key.value)
+    ::MOI.ListOfConstraintIndices{MOI.ScalarAffineFunction{T},S},
+) where {T<: FloatOrRational, S<:_SCALAR_SETS}
+    indices = MOI.ConstraintIndex{MOI.ScalarAffineFunction{T},S}[
+        MOI.ConstraintIndex{MOI.ScalarAffineFunction{T},S}(key.value)
         for (key, info) in model.affine_constraint_info if _set(info) isa S
     ]
     return sort!(indices; by = x -> x.value)
@@ -349,7 +349,7 @@ end
 function _coefficients(
     model::Optimizer,
     f::MOI.ScalarAffineFunction{T},
-) where{T <: Float64}
+) where{T <: FloatOrRational}
     size = SoPlex_numCols(model)
 
     coefficients = zeros(Cdouble, size)
@@ -429,7 +429,7 @@ function MOI.set(
     ::MOI.ConstraintSet,
     c::MOI.ConstraintIndex{MOI.SingleVariable,S},
     s::S,
-) where { T <: Float64, S<:_SCALAR_SETS{T}}
+) where { T <: FloatOrRational, S<:_SCALAR_SETS{T}}
     MOI.throw_if_not_valid(model, c)
     lower, upper = _bounds(s)
     info = _info(model, c)
@@ -482,7 +482,7 @@ function MOI.add_constraint(
     model::Optimizer{T},
     f::MOI.ScalarAffineFunction{T},
     s::_SCALAR_SETS,
-) where{T <: Float64}
+) where{T <: FloatOrRational}
     if !iszero(f.constant)
         throw(MOI.ScalarFunctionConstantNotZero{T,typeof(f),typeof(s)}(f.constant,),)
     end

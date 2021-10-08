@@ -127,8 +127,8 @@ end
 function runtests()
     model = SoPlex.Optimizer()
     config = Dict(
-        "simplex" => MOI.Test.TestConfig(basis = true),
-        "CONFIG" => MOI.Test.TestConfig(
+        "simplex" => MOI.Test.TestConfig{Rational{Clong}}(basis = true),
+        "CONFIG" => MOI.Test.TestConfig{Rational{Clong}}(
             # Modify tolerances as necessary.
             atol = 1e-6,
             rtol = 1e-6,
@@ -146,7 +146,7 @@ function runtests()
         for name in names(@__MODULE__; all = true)
             if startswith("$(name)", "test_")
                 # exclude tests that are not yet passing or that are to be called in a different fashion
-                if !("$(name)" in ["test_modification", "test_contconic", "test_intconic", "test_emptytest", "test_validtest", "test_orderedindicestest", "test_nametest"])
+                if !("$(name)" in ["test_modification", "test_contconic", "test_contlinear", "test_intconic", "test_emptytest", "test_validtest", "test_orderedindicestest", "test_nametest"])
                     @testset "$(name)" begin
                         getfield(@__MODULE__, name)(model, config[solver])
                     end

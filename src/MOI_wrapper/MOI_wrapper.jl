@@ -3,7 +3,7 @@ const MOI = MathOptInterface
 const MOIU = MOI.Utilities
 const CleverDicts = MOIU.CleverDicts
 const inf = 2^31 - 1
-const FloatOrRational = Union{Float64, Rational{Int32}}
+const FloatOrRational = Union{Float64, Rational{Clong}}
 
 # ==============================================================================
 #           HELPER FUNCTIONS
@@ -451,10 +451,10 @@ end
 function MOI.get(
     model::Optimizer,
     ::MOI.ConstraintFunction,
-    c::MOI.ConstraintIndex{MOI.ScalarAffineFunction{Float64}},
-)
+    c::MOI.ConstraintIndex{MOI.ScalarAffineFunction{T}},
+) where{T <: FloatOrRational}
     MOI.throw_if_not_valid(model, c)
-    return MOI.ScalarAffineFunction{Float64}(MOI.SingleVariable(MOI.VariableIndex(c.value)))
+    return MOI.ScalarAffineFunction{T}(MOI.SingleVariable(MOI.VariableIndex(c.value)))
 end
 
 function MOI.get(model::Optimizer, attr::MOI.ObjectiveValue)

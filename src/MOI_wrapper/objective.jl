@@ -42,7 +42,7 @@ function MOI.set(
     model::Optimizer,
     ::MOI.ObjectiveFunction{MOI.ScalarAffineFunction{T}},
     f::MOI.ScalarAffineFunction{T},
-) where{T <: Float64}
+) where{T <: FloatOrRational}
     num_vars = length(model.variable_info)
     obj = zeros(Float64, num_vars)
 
