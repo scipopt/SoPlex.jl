@@ -429,7 +429,7 @@ function MOI.set(
     ::MOI.ConstraintSet,
     c::MOI.ConstraintIndex{MOI.SingleVariable,S},
     s::S,
-) where { T <: FloatOrRational, S<:_SCALAR_SETS{T}}
+) where { T <: Float64, S<:_SCALAR_SETS{T}}
     MOI.throw_if_not_valid(model, c)
     lower, upper = _bounds(s)
     info = _info(model, c)
@@ -482,7 +482,7 @@ function MOI.add_constraint(
     model::Optimizer{T},
     f::MOI.ScalarAffineFunction{T},
     s::_SCALAR_SETS,
-) where{T <: FloatOrRational}
+) where{T <: Float64}
     if !iszero(f.constant)
         throw(MOI.ScalarFunctionConstantNotZero{T,typeof(f),typeof(s)}(f.constant,),)
     end
