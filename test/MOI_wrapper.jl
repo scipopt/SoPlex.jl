@@ -127,8 +127,22 @@ end
 function runtests()
     model = SoPlex.Optimizer()
     config = Dict(
-        "simplex" => MOI.Test.TestConfig{Rational{Clong}}(basis = true),
-        "CONFIG" => MOI.Test.TestConfig{Rational{Clong}}(
+        "simplex" => MOI.Test.TestConfig(basis = true),
+        "CONFIG" => MOI.Test.TestConfig(
+            # Modify tolerances as necessary.
+            atol = 1e-6,
+            rtol = 1e-6,
+            # Set false if dual solutions are not generated
+            duals = false,
+            # Set false if infeasibility certificates are not generated
+            infeas_certificates = false,
+            # Use MOI.LOCALLY_SOLVED for local solvers.
+            optimal_status = MOI.OPTIMAL,
+            # Set true if basis information is available
+            basis = false,
+            ),
+        "simplex_rational" => MOI.Test.TestConfig{Rational{Clong}}(basis = true),
+        "CONFIG_rational" => MOI.Test.TestConfig{Rational{Clong}}(
             # Modify tolerances as necessary.
             atol = 1e-6,
             rtol = 1e-6,
@@ -142,7 +156,7 @@ function runtests()
             basis = false,
             ),
     )
-    @testset "$(solver)" for solver in ["simplex", "CONFIG"]
+    @testset "$(solver)" for solver in ["simplex", "CONFIG", "simplex_rational", "CONFIG_rational"]
         for name in names(@__MODULE__; all = true)
             if startswith("$(name)", "test_")
                 # exclude tests that are not yet passing or that are to be called in a different fashion
