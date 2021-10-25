@@ -222,6 +222,9 @@ mutable struct Optimizer{T, VT, CT} <: MOI.AbstractOptimizer
 
     # primal
     primal::Vector{T}
+
+    # status of rows in current solution
+    rowstatus::Vector{Cint}
     
     function Optimizer{T}() where {T <: FloatOrRational}
         ptr = SoPlex_create()
@@ -242,6 +245,7 @@ mutable struct Optimizer{T, VT, CT} <: MOI.AbstractOptimizer
              0.0,
              -3,
              Vector{T}(),
+             Vector{Cint}(),
         )
         MOI.empty!(model)
         finalizer(SoPlex_free, model)
@@ -329,6 +333,17 @@ function _store_primal(model::Optimizer{T}) where{T <: FloatOrRational}
     model.primal = primal
     #println("Julia primal:", primal)
     return
+end
+
+function _store_rowstatus(model::Optimizer{T}) where{T <: FloatOrRational}
+    nrows = SoPlex_numRows(model)
+    rowstatus = ones(Cint, nrows)
+
+    for i in 1:nrows
+        rowstatus[i] = SoPlex_basisRowStatus(model, i - 1)
+    end
+
+    model.rowstatus = rowstatus
 end
 
 function MOI.optimize!(model::Optimizer)

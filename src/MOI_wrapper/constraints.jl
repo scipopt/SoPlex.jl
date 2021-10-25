@@ -4,6 +4,24 @@
 
 function MOI.supports(
     ::Optimizer,
+    ::MOI.ConstraintBasisStatus,
+    ::Type{<:MOI.ConstraintIndex{MOI.SingleVariable,<:_SCALAR_SETS}},
+)
+    return true
+end
+
+function MOI.supports(
+    ::Optimizer,
+    ::MOI.ConstraintBasisStatus,
+    ::Type{
+        <:MOI.ConstraintIndex{MOI.ScalarAffineFunction{T},<:_SCALAR_SETS},
+    },
+) where {T <: FloatOrRational}
+    return true
+end
+
+function MOI.supports(
+    ::Optimizer,
     ::MOI.ConstraintName,
     ::Type{<:MOI.ConstraintIndex{MOI.SingleVariable,<:_SCALAR_SETS}},
 )
@@ -257,6 +275,28 @@ function _info(
         return _info(model, var_index)
     end
     return throw(MOI.InvalidIndex(c))
+end
+
+function MOI.get(
+    model::Optimizer,
+    attr::MOI.ConstraintBasisStatus,
+    c::MOI.ConstraintIndex{MOI.ScalarAffineFunction{T},S},
+) where {T<:FloatOrRational, S<:_SCALAR_SETS}
+    MOI.check_result_index_bounds(model, attr)
+    stat = model.rowstatus[row(model, c)+1]
+    if stat == 0
+        return MOI.NONBASIC_AT_UPPER
+    elseif stat == 1
+        return MOI.NONBASIC_AT_LOWER
+    elseif stat == 2
+        return MOI.NONBASIC
+    elseif stat == 3
+        return MOI.SUPER_BASIC
+    elseif stat == 4
+        return MOI.BASIC
+    end
+    @assert stat == 5
+    return MOI.SUPER_BASIC
 end
 
 """
