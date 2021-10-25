@@ -11,7 +11,6 @@ using Test
 
 const MOI = SoPlex.MOI
 const MOIU = MOI.Utilities
-const MOIB = MOI.Bridges
 
 MOIU.@model(ModelData,
             (),
@@ -25,7 +24,6 @@ MOIU.@model(ModelData,
 
 const CACHE = MOIU.UniversalFallback(ModelData{Float64}())
 const CACHED = MOIU.CachingOptimizer(CACHE, SoPlex.Optimizer())
-const BRIDGED2 = MOIB.full_bridge_optimizer(CACHED, Float64)
 
 function test_basic_constraint_tests(model, config)
     MOI.Test.basic_constraint_tests(
@@ -72,9 +70,8 @@ function test_modification(model, config)
     MOI.Test.modificationtest(model, config)
 end
 
-#TODO: make sure all constraints are supported as intended
+
 function test_contlinear(model, config)
-    model = MOI.Bridges.full_bridge_optimizer(model, Float64)
     MOI.Test.contlineartest(model, config)
 end
 
@@ -160,15 +157,9 @@ function runtests()
         for name in names(@__MODULE__; all = true)
             if startswith("$(name)", "test_")
                 # exclude tests that are not yet passing or that are to be called in a different fashion
-                if !("$(name)" in ["test_modification", "test_contconic", "test_contlinear", "test_intconic", "test_emptytest", "test_validtest", "test_orderedindicestest", "test_nametest"])
+                if !("$(name)" in ["test_emptytest", "test_orderedindicestest", "test_validtest", "test_modification", "test_contconic", "test_contlinear", "test_intconic", "test_emptytest", "test_validtest", "test_orderedindicestest", "test_nametest"])
                     @testset "$(name)" begin
                         getfield(@__MODULE__, name)(model, config[solver])
-                    end
-                end
-                # Tests that need a Caching Optimizer are called here
-                if ("$(name)" in ["test_validtest", "test_orderedindicestest", "test_emptytest"])
-                    @testset "$(name)" begin
-                        getfield(@__MODULE__, name)(BRIDGED2, config[solver])
                     end
                 end
             end
