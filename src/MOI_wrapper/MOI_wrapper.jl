@@ -295,7 +295,7 @@ MOI.get(model::Optimizer, ::MOI.RawSolver) = model
 function MOI.get(model::Optimizer, ::MOI.ListOfModelAttributesSet)
     attributes = [
         MOI.ObjectiveSense(),
-        MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}(),
+        MOI.ObjectiveFunction{MOI.ScalarAffineFunction{T}}(),
     ]
     if MOI.get(model, MOI.Name()) != ""
         push!(attributes, MOI.Name())

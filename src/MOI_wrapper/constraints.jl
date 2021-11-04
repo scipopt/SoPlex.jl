@@ -4,7 +4,7 @@
 
 function MOI.supports(
     ::Optimizer,
-    ::MOI.ConstraintBasisStatus,
+    ::MOI.VariableBasisStatus,
     ::Type{<:MOI.ConstraintIndex{MOI.SingleVariable,<:_SCALAR_SETS}},
 )
     return true
