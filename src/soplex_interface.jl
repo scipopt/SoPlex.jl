@@ -125,3 +125,7 @@ end
 function SoPlex_basisRowStatus(soplex, rowidx)
     ccall((:SoPlex_basisRowStatus, libsoplex), Cint, (Ptr{Cvoid}, Cint), soplex, rowidx)
 end
+
+function SoPlex_basisColStatus(soplex, colidx)
+    ccall((:SoPlex_basisColStatus, libsoplex), Cint, (Ptr{Cvoid}, Cint), soplex, colidx)
+end

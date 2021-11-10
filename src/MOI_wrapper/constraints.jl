@@ -4,7 +4,7 @@
 
 function MOI.supports(
     ::Optimizer,
-    ::MOI.VariableBasisStatus,
+    ::MOI.ConstraintBasisStatus,
     ::Type{<:MOI.ConstraintIndex{MOI.SingleVariable,<:_SCALAR_SETS}},
 )
     return true
@@ -283,7 +283,29 @@ function MOI.get(
     c::MOI.ConstraintIndex{MOI.ScalarAffineFunction{T},S},
 ) where {T<:FloatOrRational, S<:_SCALAR_SETS}
     MOI.check_result_index_bounds(model, attr)
-    stat = model.rowstatus[row(model, c)+1]
+    stat = SoPlex_basisRowStatus(model, row(model, c))
+    if stat == 0
+        return MOI.NONBASIC_AT_UPPER
+    elseif stat == 1
+        return MOI.NONBASIC_AT_LOWER
+    elseif stat == 2
+        return MOI.NONBASIC
+    elseif stat == 3
+        return MOI.SUPER_BASIC
+    elseif stat == 4
+        return MOI.BASIC
+    end
+    @assert stat == 5
+    return MOI.SUPER_BASIC
+end
+
+function MOI.get(
+    model::Optimizer,
+    attr::MOI.ConstraintBasisStatus,
+    x::MOI.ConstraintIndex{MOI.SingleVariable,S},
+) where {S<:_SCALAR_SETS}
+    MOI.check_result_index_bounds(model, attr)
+    stat = SoPlex_basisColStatus(model, column(model, x))
     if stat == 0
         return MOI.NONBASIC_AT_UPPER
     elseif stat == 1
