@@ -1,8 +1,9 @@
 import MathOptInterface
 const MOI = MathOptInterface
-const CleverDicts = MOI.Utilities.CleverDicts
+const MOIU = MOI.Utilities
+const CleverDicts = MOIU.CleverDicts
 const inf = 2^31 - 1
-const FloatOrRational = Union{Float64, Rational{Int32}}
+const FloatOrRational = Union{Float64, Rational{Clong}}
 
 # ==============================================================================
 #           HELPER FUNCTIONS
@@ -221,7 +222,7 @@ mutable struct Optimizer{T, VT, CT} <: MOI.AbstractOptimizer
 
     # primal
     primal::Vector{T}
-    
+
     function Optimizer{T}() where {T <: FloatOrRational}
         ptr = SoPlex_create()
         if ptr == C_NULL
@@ -287,7 +288,7 @@ end
 MOI.get(::Optimizer, ::MOI.SolverName) = "SoPlex"
 MOI.get(model::Optimizer, ::MOI.RawSolver) = model
 
-function MOI.get(model::Optimizer{T}, ::MOI.ListOfModelAttributesSet) where {T <: FloatOrRational}
+function MOI.get(model::Optimizer, ::MOI.ListOfModelAttributesSet)
     attributes = [
         MOI.ObjectiveSense(),
         MOI.ObjectiveFunction{MOI.ScalarAffineFunction{T}}(),
@@ -308,6 +309,8 @@ end
 
 
 MOI.supports(::Optimizer, ::MOI.Name) = true
+
+MOI.supports(::Optimizer, ::MOI.ObjectiveSense) = true
 
 MOI.get(model::Optimizer, ::MOI.Name) = model.name
 
@@ -434,6 +437,29 @@ function MOI.get(model::Optimizer, attr::MOI.DualStatus)
         return MOI.INFEASIBILITY_CERTIFICATE
     end
     return MOI.NO_SOLUTION
+end
+
+function MOI.get(
+    model::Optimizer,
+    ::MOI.ConstraintFunction,
+    c::MOI.ConstraintIndex{MOI.SingleVariable,<:Any},
+)
+    MOI.throw_if_not_valid(model, c)
+    return MOI.SingleVariable(MOI.VariableIndex(c.value))
+end
+
+function MOI.get(
+    model::Optimizer,
+    ::MOI.ConstraintFunction,
+    c::MOI.ConstraintIndex{MOI.ScalarAffineFunction{T}},
+) where{T <: FloatOrRational}
+    MOI.throw_if_not_valid(model, c)
+    return MOI.ScalarAffineFunction{T}(MOI.SingleVariable(MOI.VariableIndex(c.value)))
+end
+
+function MOI.get(model::Optimizer, attr::MOI.ObjectiveValue)
+    MOI.check_result_index_bounds(model, attr)
+    return SoPlex_objValueReal(model)
 end
 
 ###
@@ -578,59 +604,10 @@ function _check_input_data(dest::Optimizer, src::MOI.ModelLike)
     return
 end
 
-MOI.Utilities.supports_default_copy_to(::Optimizer, ::Bool) = false
+MOIU.supports_default_copy_to(::Optimizer, copy_names::Bool) = !copy_names
 
-function MOI.copy_to(
-    dest::Optimizer{T},
-    src::MOI.ModelLike;
-    copy_names::Bool = false,
-    kwargs...,
-)  where {T <: FloatOrRational}
-    if copy_names
-        return MOI.Utilities.automatic_copy_to(
-            dest,
-            src;
-            copy_names = true,
-            kwargs...,
-        )
-    end
-    @assert MOI.is_empty(dest)
-    _check_input_data(dest, src)
-    mapping = MOI.Utilities.IndexMap()
-    numcol, colcost = _copy_to_columns(dest{T}, src, mapping)
-    collower, colupper = fill(T(-Inf), numcol), fill(T(Inf), numcol)
-    rowlower, rowupper = T[], T[]
-    I, J, V = Cint[], Cint[], T[]
-    for S in (
-        MOI.GreaterThan{T},
-        MOI.LessThan{T},
-        MOI.EqualTo{T},
-        MOI.Interval{T},
-    )
-        _extract_bound_data(dest, src, mapping, collower, colupper, S)
-        _extract_row_data(dest, src, mapping, rowlower, rowupper, I, J, V, S)
-    end
-    numrow = Cint(length(rowlower))
-    A = SparseArrays.sparse(I, J, V, numrow, numcol)
-    Highs_passLp(
-        dest,
-        numcol,
-        numrow,
-        length(V),
-        0,  # The A matrix is given is column-wise.
-        MOI.get(src, MOI.ObjectiveSense()) == MOI.MAX_SENSE ? Cint(-1) :
-        Cint(1),
-        dest.objective_constant,
-        colcost,
-        collower,
-        colupper,
-        rowlower,
-        rowupper,
-        A.colptr .- Cint(1),
-        A.rowval .- Cint(1),
-        A.nzval,
-    )
-    return mapping
+function MOI.copy_to(dest::Optimizer, src::MOI.ModelLike; kws...)
+    return MOIU.automatic_copy_to(dest, src; kws...)
 end
 
 # ==============================================================================

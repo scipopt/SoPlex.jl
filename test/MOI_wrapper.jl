@@ -10,6 +10,20 @@ import SoPlex
 using Test
 
 const MOI = SoPlex.MOI
+const MOIU = MOI.Utilities
+
+MOIU.@model(ModelData,
+            (),
+            (MOI.EqualTo, MOI.GreaterThan, MOI.LessThan, MOI.Interval),
+            (MOI.SecondOrderCone,),
+            (),
+            (),
+            (MOI.ScalarAffineFunction,),
+            (MOI.VectorOfVariables,),
+            (MOI.VectorAffineFunction,))
+
+const CACHE = MOIU.UniversalFallback(ModelData{Float64}())
+const CACHED = MOIU.CachingOptimizer(CACHE, SoPlex.Optimizer())
 
 function test_basic_constraint_tests(model, config)
     MOI.Test.basic_constraint_tests(
@@ -56,7 +70,7 @@ function test_modification(model, config)
     MOI.Test.modificationtest(model, config)
 end
 
-#TODO: add MOIU.supports_default_copy_to for the following six tests
+
 function test_contlinear(model, config)
     MOI.Test.contlineartest(model, config)
 end
@@ -69,18 +83,19 @@ function test_intconic(model, config)
     MOI.Test.intconictest(model, config)
 end
 
-function test_validtest(model, ::Any)
-    MOI.Test.validtest(model)
-end
-
 function test_emptytest(model, ::Any)
     MOI.Test.emptytest(model)
+end
+
+
+#these two need a CACHING_OPTIMIZER
+function test_validtest(model, ::Any)
+    MOI.Test.validtest(model)
 end
 
 function test_orderedindicestest(model, ::Any)
     MOI.Test.orderedindicestest(model)
 end
-#end of list of tests requiring MOIU.supports_default_copy_to
 
 
 function test_SolverName(model, ::Any)
@@ -123,11 +138,26 @@ function runtests()
             # Set true if basis information is available
             basis = false,
             ),
+        "simplex_rational" => MOI.Test.TestConfig{Rational{Clong}}(basis = true),
+        "CONFIG_rational" => MOI.Test.TestConfig{Rational{Clong}}(
+            # Modify tolerances as necessary.
+            atol = 1e-6,
+            rtol = 1e-6,
+            # Set false if dual solutions are not generated
+            duals = false,
+            # Set false if infeasibility certificates are not generated
+            infeas_certificates = false,
+            # Use MOI.LOCALLY_SOLVED for local solvers.
+            optimal_status = MOI.OPTIMAL,
+            # Set true if basis information is available
+            basis = false,
+            ),
     )
-    @testset "$(solver)" for solver in ["simplex", "CONFIG"]
+    @testset "$(solver)" for solver in ["simplex", "CONFIG", "simplex_rational", "CONFIG_rational"]
         for name in names(@__MODULE__; all = true)
             if startswith("$(name)", "test_")
-                if !("$(name)" in ["test_modification", "test_contlinear", "test_contconic", "test_intconic", "test_validtest", "test_emptytest", "test_orderedindicestest", "test_nametest"])
+                # exclude tests that are not yet passing or that are to be called in a different fashion
+                if !("$(name)" in ["test_emptytest", "test_orderedindicestest", "test_validtest", "test_modification", "test_contconic", "test_contlinear", "test_intconic", "test_emptytest", "test_validtest", "test_orderedindicestest", "test_nametest"])
                     @testset "$(name)" begin
                         getfield(@__MODULE__, name)(model, config[solver])
                     end

@@ -4,6 +4,24 @@
 
 function MOI.supports(
     ::Optimizer,
+    ::MOI.ConstraintBasisStatus,
+    ::Type{<:MOI.ConstraintIndex{MOI.SingleVariable,<:_SCALAR_SETS}},
+)
+    return true
+end
+
+function MOI.supports(
+    ::Optimizer,
+    ::MOI.ConstraintBasisStatus,
+    ::Type{
+        <:MOI.ConstraintIndex{MOI.ScalarAffineFunction{T},<:_SCALAR_SETS},
+    },
+) where {T <: FloatOrRational}
+    return true
+end
+
+function MOI.supports(
+    ::Optimizer,
     ::MOI.ConstraintName,
     ::Type{<:MOI.ConstraintIndex{MOI.SingleVariable,<:_SCALAR_SETS}},
 )
@@ -24,7 +42,7 @@ end
 function MOI.supports_constraint(
     ::Optimizer{T},
     ::Type{MOI.SingleVariable},
-    ::Type{_SCALAR_SETS{T}},
+    ::Type{<:_SCALAR_SETS{T}},
 ) where { T <: FloatOrRational}
     return true
 end
@@ -143,6 +161,7 @@ end
 
 function MOI.get(
     model::Optimizer,
+    ::MOI.ConstraintName,
     ::MOI.ListOfConstraintIndices{MOI.SingleVariable,S},
 ) where { T <: FloatOrRational, S<:_SCALAR_SETS{T}}
     indices = MOI.ConstraintIndex{MOI.SingleVariable,S}[
@@ -258,6 +277,50 @@ function _info(
     return throw(MOI.InvalidIndex(c))
 end
 
+function MOI.get(
+    model::Optimizer,
+    attr::MOI.ConstraintBasisStatus,
+    c::MOI.ConstraintIndex{MOI.ScalarAffineFunction{T},S},
+) where {T<:FloatOrRational, S<:_SCALAR_SETS}
+    MOI.check_result_index_bounds(model, attr)
+    stat = SoPlex_basisRowStatus(model, row(model, c))
+    if stat == 0
+        return MOI.NONBASIC_AT_UPPER
+    elseif stat == 1
+        return MOI.NONBASIC_AT_LOWER
+    elseif stat == 2
+        return MOI.NONBASIC
+    elseif stat == 3
+        return MOI.SUPER_BASIC
+    elseif stat == 4
+        return MOI.BASIC
+    end
+    @assert stat == 5
+    return MOI.SUPER_BASIC
+end
+
+function MOI.get(
+    model::Optimizer,
+    attr::MOI.ConstraintBasisStatus,
+    x::MOI.ConstraintIndex{MOI.SingleVariable,S},
+) where {S<:_SCALAR_SETS}
+    MOI.check_result_index_bounds(model, attr)
+    stat = SoPlex_basisColStatus(model, column(model, x))
+    if stat == 0
+        return MOI.NONBASIC_AT_UPPER
+    elseif stat == 1
+        return MOI.NONBASIC_AT_LOWER
+    elseif stat == 2
+        return MOI.NONBASIC
+    elseif stat == 3
+        return MOI.SUPER_BASIC
+    elseif stat == 4
+        return MOI.BASIC
+    end
+    @assert stat == 5
+    return MOI.SUPER_BASIC
+end
+
 """
     column(
         model::Optimizer,
@@ -275,12 +338,56 @@ end
 function MOI.get(
     model::Optimizer,
     ::MOI.ListOfConstraintIndices{MOI.ScalarAffineFunction{T},S},
+) where {T<: FloatOrRational, S<:_SCALAR_SETS}
+    indices = MOI.ConstraintIndex{MOI.ScalarAffineFunction{T},S}[
+        MOI.ConstraintIndex{MOI.ScalarAffineFunction{T},S}(key.value)
+        for (key, info) in model.affine_constraint_info if _set(info) isa S
+    ]
+    return sort!(indices; by = x -> x.value)
+end
+
+function MOI.get(
+    model::Optimizer,
+    ::MOI.ListOfConstraintIndices{MOI.ScalarAffineFunction{T},S},
 ) where { T <: FloatOrRational, S<:_SCALAR_SETS}
     indices = MOI.ConstraintIndex{MOI.ScalarAffineFunction{T},S}[
         MOI.ConstraintIndex{MOI.ScalarAffineFunction{T},S}(key.value)
         for (key, info) in model.affine_constraint_info if _set(info) isa S
     ]
     return sort!(indices; by = x -> x.value)
+end
+
+function MOI.get(
+    model::Optimizer,
+    ::MOI.ListOfConstraintIndices{MOI.SingleVariable,MOI.Integer},
+)
+    indices = MOI.ConstraintIndex{MOI.SingleVariable,MOI.Integer}[
+        MOI.ConstraintIndex{MOI.SingleVariable,MOI.Integer}(key.value) for
+        (key, info) in model.variable_info if info.type == _TYPE_INTEGER
+    ]
+    return sort!(indices, by = x -> x.value)
+end
+
+function MOI.get(
+    model::Optimizer,
+    ::MOI.ListOfConstraintIndices{MOI.SingleVariable,S},
+) where {S<:_SCALAR_SETS}
+    indices = MOI.ConstraintIndex{MOI.SingleVariable,S}[
+        MOI.ConstraintIndex{MOI.SingleVariable,S}(key.value) for
+        (key, info) in model.variable_info if info.bound in _bound_enums(S)
+    ]
+    return sort!(indices, by = x -> x.value)
+end
+
+function MOI.get(
+    model::Optimizer,
+    ::MOI.ListOfConstraintIndices{MOI.SingleVariable,MOI.ZeroOne},
+)
+    indices = MOI.ConstraintIndex{MOI.SingleVariable,MOI.ZeroOne}[
+        MOI.ConstraintIndex{MOI.SingleVariable,MOI.ZeroOne}(key.value) for
+        (key, info) in model.variable_info if info.type == _TYPE_BINARY
+    ]
+    return sort!(indices, by = x -> x.value)
 end
 
 function _info(
@@ -304,7 +411,7 @@ end
 function _coefficients(
     model::Optimizer,
     f::MOI.ScalarAffineFunction{T},
-) where{T <: Float64}
+) where{T <: FloatOrRational}
     size = SoPlex_numCols(model)
 
     coefficients = zeros(Cdouble, size)
