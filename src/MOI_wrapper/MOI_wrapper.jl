@@ -451,10 +451,63 @@ end
 function MOI.get(
     model::Optimizer,
     ::MOI.ConstraintFunction,
-    c::MOI.ConstraintIndex{MOI.ScalarAffineFunction{T}},
-) where{T <: FloatOrRational}
+    c::MOI.ConstraintIndex{MOI.ScalarAffineFunction{Float64}},
+)
     MOI.throw_if_not_valid(model, c)
-    return MOI.ScalarAffineFunction{T}(MOI.SingleVariable(MOI.VariableIndex(c.value)))
+    r = row(model, c)
+    ncols = SoPlex_numCols(model)
+    num_nonzeros = Cint(0)
+    col_indices = Vector{Cint}(ncols)
+    col_coefs = Vector{Cdouble}(ncols)
+    
+    # get row data
+    SoPlex_getRowVectorReal(r, num_nonzeros, col_indices, col_coefs)
+
+    # get lower and upper bound of row
+    lower, upper = Cdouble(), Cdouble()
+    SoPlex_getRowBoundsReal(r, Ref{lower}, Ref{upper})
+
+    return MOI.ScalarAffineFunction(
+        MOI.ScalarAffineTerm{Float64}[
+            MOI.ScalarAffineTerm(
+                col_coefs[i],
+                model.variable_info[CleverDicts.LinearIndex(col_indices[i] + 1)].index,
+            ) for i in 1:num_nonzeros
+        ],
+        MOI.Interval(lower, upper),
+    )
+end
+
+function MOI.get(
+    model::Optimizer,
+    ::MOI.ConstraintFunction,
+    c::MOI.ConstraintIndex{MOI.ScalarAffineFunction{Rational{Clong}}},
+)
+    MOI.throw_if_not_valid(model, c)
+    r = row(model, c)
+    ncols = SoPlex_numCols(model)
+    num_nonzeros = Ref{Cint}(0)
+    col_indices = Vector{Clong}(ncols)
+    col_coefsnum = Vector{Clong}(ncols)
+    col_coefsdenom = Vector{Clong}(ncols)
+
+    # get row data
+    SoPlex_getRowVectorReal(r, num_nonzeros, col_indices, col_coefsnum, col_coefsdenom)
+    
+    # get bounds of row
+    lowernum, lowerdenom = Clong(), Clong()
+    uppernum, upperdenom = Clong(), Clong()
+    SoPlex_getRowBoundsRational(r, Ref{lowernum}, Ref{lowerdenom}, Ref{uppernum}, Ref{upperdenom})
+
+    return MOI.ScalarAffineFunction(
+        MOI.ScalarAffineTerm{Rational{Clong}}[
+            MOI.ScalarAffineTerm(
+                col_coefsnum[i] // col_coefsdenom[i],
+                model.variable_info[CleverDicts.LinearIndex(col_indices[i] + 1)].index,
+            ) for i in 1:num_nonzeros
+        ],
+        MOI.Interval(lowernum // lowerdenom, uppernum // upperdenom),
+    )
 end
 
 function MOI.get(model::Optimizer, attr::MOI.ObjectiveValue)
