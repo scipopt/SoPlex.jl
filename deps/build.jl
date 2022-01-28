@@ -1,9 +1,8 @@
 const soplex_location = ENV["SOPLEX_DIR"]
 const libsoplex = joinpath(soplex_location, "build", "lib", "libsoplexc.so")
 
-if (!isfile(libsoplex))
-    using SCIP_jll
-    libsoplex = SCIP_jll.libsoplex
+if !isfile(libsoplex)
+    using SCIP_jll: libsoplex
 end
 
 const depsfile = joinpath(@__DIR__, "deps.jl")
