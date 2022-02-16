@@ -1,4 +1,4 @@
-const soplex_location = ENV["SOPLEX_DIR"]
+get(ENV, "SOPLEX_DIR", "")
 const libsoplex = joinpath(soplex_location, "build", "lib", "libsoplexc.so")
 
 if !isfile(libsoplex)
