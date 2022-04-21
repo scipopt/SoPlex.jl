@@ -5,7 +5,7 @@
 function MOI.supports(
     ::Optimizer,
     ::MOI.ConstraintBasisStatus,
-    ::Type{<:MOI.ConstraintIndex{MOI.SingleVariable,<:_SCALAR_SETS}},
+    ::Type{<:MOI.ConstraintIndex{MOI.VariableIndex,<:_SCALAR_SETS}},
 )
     return true
 end
@@ -23,7 +23,7 @@ end
 function MOI.supports(
     ::Optimizer,
     ::MOI.ConstraintName,
-    ::Type{<:MOI.ConstraintIndex{MOI.SingleVariable,<:_SCALAR_SETS}},
+    ::Type{<:MOI.ConstraintIndex{MOI.VariableIndex,<:_SCALAR_SETS}},
 )
     return true
 end
@@ -41,7 +41,7 @@ end
 # Variable bounds
 function MOI.supports_constraint(
     ::Optimizer{T},
-    ::Type{MOI.SingleVariable},
+    ::Type{MOI.VariableIndex},
     ::Type{<:_SCALAR_SETS{T}},
 ) where { T <: FloatOrRational}
     return true
@@ -70,7 +70,7 @@ end
 
 function MOI.is_valid(
     model::Optimizer,
-    c::MOI.ConstraintIndex{MOI.SingleVariable, MOI.LessThan{T}},
+    c::MOI.ConstraintIndex{MOI.VariableIndex, MOI.LessThan{T}},
 ) where{T <: FloatOrRational}
     if haskey(model.variable_info, MOI.VariableIndex(c.value))
         info = _info(model, c)
@@ -82,7 +82,7 @@ end
 
 function MOI.is_valid(
     model::Optimizer,
-    c::MOI.ConstraintIndex{MOI.SingleVariable, MOI.GreaterThan{T}},
+    c::MOI.ConstraintIndex{MOI.VariableIndex, MOI.GreaterThan{T}},
 ) where{T <: FloatOrRational}
     if haskey(model.variable_info, MOI.VariableIndex(c.value))
         info = _info(model, c)
@@ -94,7 +94,7 @@ end
 
 function MOI.is_valid(
     model::Optimizer,
-    c::MOI.ConstraintIndex{MOI.SingleVariable, MOI.Interval{T}},
+    c::MOI.ConstraintIndex{MOI.VariableIndex, MOI.Interval{T}},
 ) where{T <: FloatOrRational}
     return haskey(model.variable_info, MOI.VariableIndex(c.value)) &&
            _info(model, c).bound == _BOUND_INTERVAL
@@ -102,7 +102,7 @@ end
 
 function MOI.is_valid(
     model::Optimizer,
-    c::MOI.ConstraintIndex{MOI.SingleVariable, MOI.EqualTo{T}},
+    c::MOI.ConstraintIndex{MOI.VariableIndex, MOI.EqualTo{T}},
 ) where{T <: FloatOrRational}
     return haskey(model.variable_info, MOI.VariableIndex(c.value)) &&
            _info(model, c).bound == _BOUND_EQUAL_TO
@@ -131,7 +131,7 @@ _bound_enums(::Type{MOI.EqualTo{T}}) where{T <: FloatOrRational} = (_BOUND_EQUAL
 function MOI.get(
     model::Optimizer,
     ::MOI.ConstraintName,
-    c::MOI.ConstraintIndex{MOI.SingleVariable,S},
+    c::MOI.ConstraintIndex{MOI.VariableIndex,S},
 ) where {S<:_SCALAR_SETS}
     MOI.throw_if_not_valid(model, c)
     info = _info(model, c)
@@ -145,7 +145,7 @@ end
 function MOI.set(
     model::Optimizer,
     ::MOI.ConstraintName,
-    c::MOI.ConstraintIndex{MOI.SingleVariable,S},
+    c::MOI.ConstraintIndex{MOI.VariableIndex,S},
     name::String,
 ) where {S<:_SCALAR_SETS}
     MOI.throw_if_not_valid(model, c)
@@ -162,10 +162,10 @@ end
 function MOI.get(
     model::Optimizer,
     ::MOI.ConstraintName,
-    ::MOI.ListOfConstraintIndices{MOI.SingleVariable,S},
+    ::MOI.ListOfConstraintIndices{MOI.VariableIndex,S},
 ) where { T <: FloatOrRational, S<:_SCALAR_SETS{T}}
-    indices = MOI.ConstraintIndex{MOI.SingleVariable,S}[
-        MOI.ConstraintIndex{MOI.SingleVariable,S}(key.value) for
+    indices = MOI.ConstraintIndex{MOI.VariableIndex,S}[
+        MOI.ConstraintIndex{MOI.VariableIndex,S}(key.value) for
         (key, info) in model.variable_info if info.bound in _bound_enums(S)
     ]
     return sort!(indices, by = x -> x.value)
@@ -227,7 +227,7 @@ function _rebuild_name_to_constraint_index(model::Optimizer{T}) where {T <: Floa
             _set_name_to_constraint_index(
                 model,
                 info.lessthan_name,
-                MOI.ConstraintIndex{MOI.SingleVariable,MOI.LessThan{T}}(
+                MOI.ConstraintIndex{MOI.VariableIndex,MOI.LessThan{T}}(
                     key.value,
                 ),
             )
@@ -246,7 +246,7 @@ function _rebuild_name_to_constraint_index(model::Optimizer{T}) where {T <: Floa
             _set_name_to_constraint_index(
                 model,
                 info.greaterthan_interval_or_equalto_name,
-                MOI.ConstraintIndex{MOI.SingleVariable,S}(key.value),
+                MOI.ConstraintIndex{MOI.VariableIndex,S}(key.value),
             )
         end
     end
@@ -268,7 +268,7 @@ end
 
 function _info(
     model::Optimizer,
-    c::MOI.ConstraintIndex{MOI.SingleVariable, <:Any},
+    c::MOI.ConstraintIndex{MOI.VariableIndex, <:Any},
 )
     var_index = MOI.VariableIndex(c.value)
     if haskey(model.variable_info, var_index)
@@ -302,7 +302,7 @@ end
 function MOI.get(
     model::Optimizer,
     attr::MOI.ConstraintBasisStatus,
-    x::MOI.ConstraintIndex{MOI.SingleVariable,S},
+    x::MOI.ConstraintIndex{MOI.VariableIndex,S},
 ) where {S<:_SCALAR_SETS}
     MOI.check_result_index_bounds(model, attr)
     stat = SoPlex_basisColStatus(model, column(model, x))
@@ -324,13 +324,13 @@ end
 """
     column(
         model::Optimizer,
-        c::MOI.ConstraintIndex{MOI.SingleVariable,<:Any},
+        c::MOI.ConstraintIndex{MOI.VariableIndex,<:Any},
     )
 Return the 0-indexed column associated with the variable bounds `c` in `model`.
 """
 function column(
     model::Optimizer,
-    c::MOI.ConstraintIndex{MOI.SingleVariable, <:Any},
+    c::MOI.ConstraintIndex{MOI.VariableIndex, <:Any},
 )
     return _info(model, c).column
 end
@@ -359,10 +359,10 @@ end
 
 function MOI.get(
     model::Optimizer,
-    ::MOI.ListOfConstraintIndices{MOI.SingleVariable,MOI.Integer},
+    ::MOI.ListOfConstraintIndices{MOI.VariableIndex,MOI.Integer},
 )
-    indices = MOI.ConstraintIndex{MOI.SingleVariable,MOI.Integer}[
-        MOI.ConstraintIndex{MOI.SingleVariable,MOI.Integer}(key.value) for
+    indices = MOI.ConstraintIndex{MOI.VariableIndex,MOI.Integer}[
+        MOI.ConstraintIndex{MOI.VariableIndex,MOI.Integer}(key.value) for
         (key, info) in model.variable_info if info.type == _TYPE_INTEGER
     ]
     return sort!(indices, by = x -> x.value)
@@ -370,10 +370,10 @@ end
 
 function MOI.get(
     model::Optimizer,
-    ::MOI.ListOfConstraintIndices{MOI.SingleVariable,S},
+    ::MOI.ListOfConstraintIndices{MOI.VariableIndex,S},
 ) where {S<:_SCALAR_SETS}
-    indices = MOI.ConstraintIndex{MOI.SingleVariable,S}[
-        MOI.ConstraintIndex{MOI.SingleVariable,S}(key.value) for
+    indices = MOI.ConstraintIndex{MOI.VariableIndex,S}[
+        MOI.ConstraintIndex{MOI.VariableIndex,S}(key.value) for
         (key, info) in model.variable_info if info.bound in _bound_enums(S)
     ]
     return sort!(indices, by = x -> x.value)
@@ -381,10 +381,10 @@ end
 
 function MOI.get(
     model::Optimizer,
-    ::MOI.ListOfConstraintIndices{MOI.SingleVariable,MOI.ZeroOne},
+    ::MOI.ListOfConstraintIndices{MOI.VariableIndex,MOI.ZeroOne},
 )
-    indices = MOI.ConstraintIndex{MOI.SingleVariable,MOI.ZeroOne}[
-        MOI.ConstraintIndex{MOI.SingleVariable,MOI.ZeroOne}(key.value) for
+    indices = MOI.ConstraintIndex{MOI.VariableIndex,MOI.ZeroOne}[
+        MOI.ConstraintIndex{MOI.VariableIndex,MOI.ZeroOne}(key.value) for
         (key, info) in model.variable_info if info.type == _TYPE_BINARY
     ]
     return sort!(indices, by = x -> x.value)
@@ -476,12 +476,12 @@ end
 
 function MOI.add_constraint(
     model::Optimizer,
-    f::MOI.SingleVariable,
+    x::MOI.VariableIndex,
     s::_SCALAR_SETS{T},
 ) where{T <: FloatOrRational}
-    info = _info(model, f.variable)
+    info = _info(model, variable)
     _update_info(info, s)
-    index = MOI.ConstraintIndex{MOI.SingleVariable,typeof(s)}(f.variable.value)
+    index = MOI.ConstraintIndex{MOI.VariableIndex,typeof(s)}(x.value)
     MOI.set(model, MOI.ConstraintSet(), index, s)
     return index
 end
@@ -489,7 +489,7 @@ end
 function MOI.set(
     model::Optimizer{T},
     ::MOI.ConstraintSet,
-    c::MOI.ConstraintIndex{MOI.SingleVariable,S},
+    c::MOI.ConstraintIndex{MOI.VariableIndex,S},
     s::S,
 ) where { T <: Float64, S<:_SCALAR_SETS{T}}
     MOI.throw_if_not_valid(model, c)
@@ -516,7 +516,7 @@ end
 function MOI.set(
     model::Optimizer,
     ::MOI.ConstraintSet,
-    c::MOI.ConstraintIndex{MOI.SingleVariable,S},
+    c::MOI.ConstraintIndex{MOI.VariableIndex,S},
     s::S,
 ) where { T <: Rational{Int64}, S<:_SCALAR_SETS{T}}
     MOI.throw_if_not_valid(model, c)
