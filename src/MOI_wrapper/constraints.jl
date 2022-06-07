@@ -417,7 +417,7 @@ function _coefficients(
     coefficients = zeros(Cdouble, size)
 
     for term in f.terms
-        idx = column(model, term.variable_index)
+        idx = column(model, term.variable)
         coefficients[idx + 1] = term.coefficient
     end
     return coefficients
@@ -432,7 +432,7 @@ function _coefficients(
     coefficients = zeros(Rational{Int64}, size)
     
     for term in f.terms
-        idx = column(model, term.variable_index)
+        idx = column(model, term.variable)
         coefficients[idx + 1] = term.coefficient
     end 
     return coefficients
@@ -479,7 +479,7 @@ function MOI.add_constraint(
     x::MOI.VariableIndex,
     s::_SCALAR_SETS{T},
 ) where{T <: FloatOrRational}
-    info = _info(model, variable)
+    info = _info(model, x)
     _update_info(info, s)
     index = MOI.ConstraintIndex{MOI.VariableIndex,typeof(s)}(x.value)
     MOI.set(model, MOI.ConstraintSet(), index, s)
