@@ -64,7 +64,7 @@ mutable struct _VariableInfo{T}
     lower::T
     upper::T
     # We can perform an optimization and only store two strings for the
-    # constraint names because, at most, there can be two SingleVariable
+    # constraint names because, at most, there can be two VariableIndex
     # constraints, e.g., LessThan, GreaterThan.
     lessthan_name::String
     greaterthan_interval_or_equalto_name::String
@@ -442,10 +442,10 @@ end
 function MOI.get(
     model::Optimizer,
     ::MOI.ConstraintFunction,
-    c::MOI.ConstraintIndex{MOI.SingleVariable,<:Any},
+    c::MOI.ConstraintIndex{MOI.VariableIndex,<:Any},
 )
     MOI.throw_if_not_valid(model, c)
-    return MOI.SingleVariable(MOI.VariableIndex(c.value))
+    return MOI.VariableIndex(c.value)
 end
 
 function MOI.get(
@@ -547,16 +547,15 @@ function _extract_bound_data(
     colupper::Vector{T},
     ::Type{S},
 ) where {T <: FloatOrRational, S}
-    for c_index in
-        MOI.get(src, MOI.ListOfConstraintIndices{MOI.SingleVariable{T},S}())
-        f = MOI.get(src, MOI.ConstraintFunction(), c_index)
+    for c_index in MOI.get(src, MOI.ListOfConstraintIndices{MOI.VariableIndex{T},S}())
+        x = MOI.get(src, MOI.ConstraintFunction(), c_index)
         s = MOI.get(src, MOI.ConstraintSet(), c_index)
-        new_f = mapping.varmap[f.variable]
+        new_x = mapping.varmap[x]
         info = _info(dest, new_f)
         _add_bounds(collower, colupper, info.column + 1, s)
         _update_info(info, s)
         mapping.conmap[c_index] =
-            MOI.ConstraintIndex{MOI.SingleVariable,S}(new_f.value)
+            MOI.ConstraintIndex{MOI.VariableIndex,S}(new_x.value)
     end
     return
 end
@@ -657,7 +656,7 @@ function _check_input_data(dest::Optimizer, src::MOI.ModelLike)
     return
 end
 
-MOIU.supports_default_copy_to(::Optimizer, copy_names::Bool) = !copy_names
+MOI.supports_incremental_interface(::Optimizer) = true
 
 function MOI.copy_to(dest::Optimizer, src::MOI.ModelLike; kws...)
     return MOIU.automatic_copy_to(dest, src; kws...)

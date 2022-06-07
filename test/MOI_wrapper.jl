@@ -25,15 +25,15 @@ MOIU.@model(ModelData,
 const CACHE = MOIU.UniversalFallback(ModelData{Float64}())
 const CACHED = MOIU.CachingOptimizer(CACHE, SoPlex.Optimizer())
 
-function test_basic_constraint_tests(model, config)
-    MOI.Test.basic_constraint_tests(
-        model,
-        config,
-        delete = false,
-        get_constraint_function = false,
-        get_constraint_set = false,
-        name = false)
-end
+# function test_basic_constraint_tests(model, config)
+#     MOI.Test.basic_constraint_tests(
+#         model,
+#         config,
+#         delete = false,
+#         get_constraint_function = false,
+#         get_constraint_set = false,
+#         name = false)
+# end
 
 #TODO: almost all functions are using unsupported functions
 #function test_unittest(model)
@@ -66,92 +66,81 @@ end
 #end
 
 #TODO: there is some invalid variable name x somewhere
-function test_modification(model, config)
-    MOI.Test.modificationtest(model, config)
-end
+# function test_modification(model, config)
+#     MOI.Test.modificationtest(model, config)
+# end
 
 
-function test_contlinear(model, config)
-    MOI.Test.contlineartest(model, config)
-end
+# function test_contlinear(model, config)
+#     MOI.Test.contlineartest(model, config)
+# end
 
-function test_contconic(model, config)
-    MOI.Test.contlineartest(model, config)
-end
+# function test_contconic(model, config)
+#     MOI.Test.contlineartest(model, config)
+# end
 
-function test_intconic(model, config)
-    MOI.Test.intconictest(model, config)
-end
+# function test_intconic(model, config)
+#     MOI.Test.intconictest(model, config)
+# end
 
-function test_emptytest(model, ::Any)
-    MOI.Test.emptytest(model)
-end
+# function test_emptytest(model, ::Any)
+#     MOI.Test.emptytest(model)
+# end
 
 
 #these two need a CACHING_OPTIMIZER
-function test_validtest(model, ::Any)
-    MOI.Test.validtest(model)
-end
+# function test_validtest(model, ::Any)
+#     MOI.Test.validtest(model)
+# end
 
-function test_orderedindicestest(model, ::Any)
-    MOI.Test.orderedindicestest(model)
-end
-
+# function test_orderedindicestest(model, ::Any)
+#     MOI.Test.orderedindicestest(model)
+# end
 
 function test_SolverName(model, ::Any)
     @test MOI.get(model, MOI.SolverName()) == "SoPlex"
 end
 
-function test_default_objective_test(model, ::Any)
-    MOI.Test.default_objective_test(model)
-end
+# function test_default_objective_test(model, ::Any)
+#     MOI.Test.default_objective_test(model)
+# end
 
-function test_default_status_test(model, ::Any)
-    MOI.Test.default_status_test(model)
-end
+# function test_default_status_test(model, ::Any)
+#     MOI.Test.default_status_test(model)
+# end
 
 #TODO: fix right naming -> I think we need to go back to have the dictionary and nothing
 # like in HiGHs
-function test_nametest(model, ::Any)
-    MOI.Test.nametest(model)
-end
+# function test_nametest(model, ::Any)
+#     MOI.Test.nametest(model)
+# end
 
-function test_scalar_function_constant_not_zero(model, ::Any)
-    MOI.Test.scalar_function_constant_not_zero(model)
-end
+# function test_scalar_function_constant_not_zero(model, ::Any)
+#     MOI.Test.scalar_function_constant_not_zero(model)
+# end
 
 # This function runs all functions in this module starting with `test_`.
 function runtests()
     model = SoPlex.Optimizer()
     config = Dict(
-        "simplex" => MOI.Test.TestConfig(basis = true),
-        "CONFIG" => MOI.Test.TestConfig(
-            # Modify tolerances as necessary.
+        "simplex" => MOI.Test.Config(
+            atol=1e-6,
+            rtol=1e-6,
+        ),
+        "CONFIG" => MOI.Test.Config(
+            atol=1e-6,
+            rtol=1e-6,
+        ),
+        "simplex_rational" => MOI.Test.Config(
+            Rational{Clong},
             atol = 1e-6,
             rtol = 1e-6,
-            # Set false if dual solutions are not generated
-            duals = false,
-            # Set false if infeasibility certificates are not generated
-            infeas_certificates = false,
-            # Use MOI.LOCALLY_SOLVED for local solvers.
-            optimal_status = MOI.OPTIMAL,
-            # Set true if basis information is available
-            basis = false,
-            ),
-        "simplex_rational" => MOI.Test.TestConfig{Rational{Clong}}(basis = true),
-        "CONFIG_rational" => MOI.Test.TestConfig{Rational{Clong}}(
-            # Modify tolerances as necessary.
+        ),
+        "CONFIG_rational" => MOI.Test.Config(
+            Rational{Clong},
             atol = 1e-6,
             rtol = 1e-6,
-            # Set false if dual solutions are not generated
-            duals = false,
-            # Set false if infeasibility certificates are not generated
-            infeas_certificates = false,
-            # Use MOI.LOCALLY_SOLVED for local solvers.
-            optimal_status = MOI.OPTIMAL,
-            # Set true if basis information is available
-            basis = false,
-            ),
+        ),
     )
     @testset "$(solver)" for solver in ["simplex", "CONFIG", "simplex_rational", "CONFIG_rational"]
         for name in names(@__MODULE__; all = true)
