@@ -288,7 +288,7 @@ end
 MOI.get(::Optimizer, ::MOI.SolverName) = "SoPlex"
 MOI.get(model::Optimizer, ::MOI.RawSolver) = model
 
-function MOI.get(model::Optimizer, ::MOI.ListOfModelAttributesSet)
+function MOI.get(model::Optimizer{T}, ::MOI.ListOfModelAttributesSet) where {T}
     attributes = [
         MOI.ObjectiveSense(),
         MOI.ObjectiveFunction{MOI.ScalarAffineFunction{T}}(),
