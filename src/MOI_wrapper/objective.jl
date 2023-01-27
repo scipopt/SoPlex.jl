@@ -47,7 +47,7 @@ function MOI.set(
     obj = zeros(Float64, num_vars)
 
     for term in f.terms
-        col = column(model, term.variable_index)
+        col = column(model, term.variable)
         obj[col+1] += term.coefficient
     end
 
@@ -65,7 +65,7 @@ function MOI.set(
     obj = zeros(Rational{Int64}, num_vars)
     
     for term in f.terms
-        col = column(model, term.variable_index)
+        col = column(model, term.variable)
         obj[col+1] += term.coefficient
     end
     

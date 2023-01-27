@@ -122,10 +122,18 @@ function SoPlex_getUpperReal(soplex, ub, dim)
     ccall((:SoPlex_getUpperReal, libsoplex), Cvoid, (Ptr{Cvoid}, Ptr{Cdouble}, Cint), soplex, ub, dim)
 end
 
-function SoPlex_basisRowStatus(soplex, rowidx)
-    ccall((:SoPlex_basisRowStatus, libsoplex), Cint, (Ptr{Cvoid}, Cint), soplex, rowidx)
+function SoPlex_getRowVectorReal(soplex, i, nnonzeros, indices, coefs)
+    ccall((:SoPlex_getRowVectorReal, libsoplex), Cvoid, (Ptr{Cvoid}, Cint, Ptr{Cint}, Ptr{Clong}, Ptr{Cdouble}), soplex, i, nnonzeros, indices, coefs)
 end
 
-function SoPlex_basisColStatus(soplex, colidx)
-    ccall((:SoPlex_basisColStatus, libsoplex), Cint, (Ptr{Cvoid}, Cint), soplex, colidx)
+function SoPlex_getRowVectorRational(soplex, i, nnonzeros, indices, coefsnum, coefsdenom)
+    ccall((:SoPlex_getRowVectorRational, libsoplex), Cvoid, (Ptr{Cvoid}, Cint, Ptr{Cint}, Ptr{Clong}, Ptr{Clong}, Ptr{Clong}), soplex, i, nnonzeros, indices, coefsnum, coefsdenom)
+end
+
+function SoPlex_getRowBoundsReal(soplex, i, lb, ub)
+    ccall((:SoPlex_getRowBoundsReal, libsoplex), Cvoid, (Ptr{Cvoid}, Cint, Ptr{Cdouble}, Ptr{Cdouble}), soplex, i, lb, ub)
+end
+
+function SoPlex_getRowBoundsRational(soplex, i, lbnum, lbdenom, ubnum, ubdenom)
+    ccall((:SoPlex_getRowBoundsRational, libsoplex), Cvoid, (Ptr{Cvoid}, Cint, Ptr{Clong}, Ptr{Clong}, Ptr{Clong}, Ptr{Clong}), soplex, i, lbnum, lbdenom, ubnum, ubdenom)
 end

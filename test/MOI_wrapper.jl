@@ -36,34 +36,35 @@ const CACHED = MOIU.CachingOptimizer(CACHE, SoPlex.Optimizer())
 # end
 
 #TODO: almost all functions are using unsupported functions
-#function test_unittest(model)
-#    # Test all the functions included in dictionary `MOI.Test.unittests`,
-#    # except functions that are not supported by SoPlex
-#    MOI.Test.unittest(
-#        model,
-#        CONFIG,
-#        String[
-#            # add functions that are not supported by SoPlex
-#            "number_threads",
-#            "solve_zero_one_with_bounds_1",
-#            "solve_singlevariable_obj",
-#            "solve_affine_greaterthan",
-#            "solve_affine_deletion_edge_cases",
-#            "solve_affine_lessthan",
-#            "solve_result_index",
-#            "solve_with_lowerbound",
-#            "delete_nonnegative_variables",
-#            "add_variable",
-#            "solve_constant_obj",
-#            "solve_single_variable_dual_max",
-#            "solve_single_variable_dual_min",
-#            "delete_variable",
-#            "solve_time",
-#            "solve_duplicate_terms_obj",
-#            "solve_qcp_edge_cases"
-#        ],
-#    )
-#end
+function test_unittest(model, config)
+# Test all the functions included in dictionary `MOI.Test.unittests`,
+# except functions that are not supported by SoPlex
+    MOI.Test.runtests(
+        model,
+        config,
+        exclude=String[
+            # add functions that are not supported by SoPlex
+            "number_threads",
+            "solve_zero_one_with_bounds_1",
+            "solve_singlevariable_obj",
+            "solve_affine_greaterthan",
+            "solve_affine_deletion_edge_cases",
+            "solve_affine_lessthan",
+            "solve_result_index",
+            "solve_with_lowerbound",
+            "delete_nonnegative_variables",
+            "add_variable",
+            "solve_constant_obj",
+            "solve_single_variable_dual_max",
+            "solve_single_variable_dual_min",
+            "delete_variable",
+            "solve_time",
+            "solve_duplicate_terms_obj",
+            "solve_qcp_edge_cases",
+            "modification",
+        ],
+    )
+end
 
 #TODO: there is some invalid variable name x somewhere
 # function test_modification(model, config)
@@ -124,22 +125,28 @@ function runtests()
     model = SoPlex.Optimizer()
     config = Dict(
         "simplex" => MOI.Test.Config(
+            Float64,
             atol=1e-6,
             rtol=1e-6,
+            exclude=Any[MOI.DualObjectiveValue, MOI.ConstraintName]
         ),
         "CONFIG" => MOI.Test.Config(
+            Float64,
             atol=1e-6,
             rtol=1e-6,
+            exclude=Any[MOI.DualObjectiveValue, MOI.ConstraintName]
         ),
         "simplex_rational" => MOI.Test.Config(
             Rational{Clong},
             atol = 1e-6,
             rtol = 1e-6,
+            exclude=Any[MOI.DualObjectiveValue, MOI.ConstraintName]
         ),
         "CONFIG_rational" => MOI.Test.Config(
             Rational{Clong},
             atol = 1e-6,
             rtol = 1e-6,
+            exclude=Any[MOI.DualObjectiveValue, MOI.ConstraintName]
         ),
     )
     @testset "$(solver)" for solver in ["simplex", "CONFIG", "simplex_rational", "CONFIG_rational"]

@@ -288,7 +288,7 @@ end
 MOI.get(::Optimizer, ::MOI.SolverName) = "SoPlex"
 MOI.get(model::Optimizer, ::MOI.RawSolver) = model
 
-function MOI.get(model::Optimizer, ::MOI.ListOfModelAttributesSet)
+function MOI.get(model::Optimizer{T}, ::MOI.ListOfModelAttributesSet) where {T}
     attributes = [
         MOI.ObjectiveSense(),
         MOI.ObjectiveFunction{MOI.ScalarAffineFunction{T}}(),
@@ -418,9 +418,7 @@ function MOI.get(model::Optimizer, ::MOI.ResultCount)
 end
 
 function MOI.get(model::Optimizer, attr::MOI.PrimalStatus)
-    if attr.N != 1
-        return MOI.NO_SOLUTION
-    elseif model.status == 1 || model.status == 2
+    if model.status == 1 || model.status == 2
         return MOI.FEASIBLE_POINT
     elseif model.status == 3
         return MOI.INFEASIBILITY_CERTIFICATE
@@ -429,9 +427,7 @@ function MOI.get(model::Optimizer, attr::MOI.PrimalStatus)
 end
 
 function MOI.get(model::Optimizer, attr::MOI.DualStatus)
-    if attr.N != 1
-        return MOI.NO_SOLUTION
-    elseif model.status == 1 || model.status == 3
+    if model.status == 1 || model.status == 3
         return MOI.FEASIBLE_POINT
     elseif model.status == 2
         return MOI.INFEASIBILITY_CERTIFICATE
@@ -451,10 +447,67 @@ end
 function MOI.get(
     model::Optimizer,
     ::MOI.ConstraintFunction,
-    c::MOI.ConstraintIndex{MOI.ScalarAffineFunction{T}},
-) where{T <: FloatOrRational}
+    c::MOI.ConstraintIndex{MOI.ScalarAffineFunction{Float64}},
+)
     MOI.throw_if_not_valid(model, c)
-    return one(T) * MOI.VariableIndex(c.value)
+    r = row(model, c)
+    ncols = SoPlex_numCols(model)
+    num_nonzeros = Cint(0)
+    col_indices = Vector{Cint}(undef, ncols)
+    col_coefs = Vector{Cdouble}(undef, ncols)
+    
+    # get row data
+    SoPlex_getRowVectorReal(r, num_nonzeros, col_indices, col_coefs)
+
+    # get lower and upper bound of row
+    lower = Ref{Cdouble}()
+    upper = Ref{Cdouble}()
+    SoPlex_getRowBoundsReal(r, lower, upper)
+
+    return MOI.ScalarAffineFunction(
+        MOI.ScalarAffineTerm{Float64}[
+            MOI.ScalarAffineTerm(
+                col_coefs[i],
+                model.variable_info[CleverDicts.LinearIndex(col_indices[i] + 1)].index,
+            ) for i in 1:num_nonzeros
+        ],
+        zero(Float64),
+    )
+end
+
+function MOI.get(
+    model::Optimizer,
+    ::MOI.ConstraintFunction,
+    c::MOI.ConstraintIndex{MOI.ScalarAffineFunction{Rational{Clong}}},
+)
+    MOI.throw_if_not_valid(model, c)
+    r = row(model, c)
+    ncols = SoPlex_numCols(model)
+    num_nonzeros = Ref{Cint}(0)
+    col_indices = Vector{Clong}(undef, ncols)
+    col_coefsnum = Vector{Clong}(undef, ncols)
+    col_coefsdenom = Vector{Clong}(undef, ncols)
+
+    # get row data
+    SoPlex_getRowVectorReal(r, num_nonzeros, col_indices, col_coefsnum, col_coefsdenom)
+    
+    # get bounds of row
+    lowernum = Ref{Clong}()
+    lowerdenom = Ref{Clong}()
+    uppernum = Ref{Clong}()
+    upperdenom = Ref{Clong}()
+
+    SoPlex_getRowBoundsRational(r, lowernum, lowerdenom, uppernum, upperdenom)
+
+    return MOI.ScalarAffineFunction(
+        MOI.ScalarAffineTerm{Rational{Clong}}[
+            MOI.ScalarAffineTerm(
+                col_coefsnum[i] // col_coefsdenom[i],
+                model.variable_info[CleverDicts.LinearIndex(col_indices[i] + 1)].index,
+            ) for i in 1:num_nonzeros
+        ],
+        zero(Rational{Clong}),
+    )
 end
 
 function MOI.get(model::Optimizer, attr::MOI.ObjectiveValue)
@@ -525,7 +578,7 @@ function _copy_to_columns(dest::Optimizer{T}, src::MOI.ModelLike, mapping) where
         MOI.get(src, MOI.ObjectiveFunction{MOI.ScalarAffineFunction{T}}())
     c = fill(T(0.0), numcols)
     for term in fobj.terms
-        i = mapping.varmap[term.variable_index].value
+        i = mapping.varmap[term.variable].value
         c[i] += term.coefficient
     end
     dest.objective_constant = fobj.constant
@@ -578,7 +631,7 @@ function _extract_row_data(
     for (i, c_index) in enumerate(list)
         for term in fs[i].terms
             push!(I, row)
-            push!(J, Cint(mapping.varmap[term.variable_index].value))
+            push!(J, Cint(mapping.varmap[term.variable].value))
             push!(V, term.coefficient)
         end
         row += 1
